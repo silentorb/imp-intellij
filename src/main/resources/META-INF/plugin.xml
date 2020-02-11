@@ -13,7 +13,8 @@
     <extensions defaultExtensionNs="com.intellij">
         <fileType name="Imp file" implementationClass="silentorb.imp.intellij.ImpFileType" fieldName="INSTANCE"
                   language="Imp" extensions="imp"/>
-        <lang.parserDefinition language="Imp" implementationClass="silentorb.imp.intellij.language.ImpParserDefinition"/>
+<!--        <lang.parserDefinition language="Imp" implementationClass="silentorb.imp.intellij.language.ImpParserDefinition"/>-->
+        <fileEditorProvider implementation="silentorb.imp.intellij.ImpEditorProvider"/>
     </extensions>
 
     <actions>

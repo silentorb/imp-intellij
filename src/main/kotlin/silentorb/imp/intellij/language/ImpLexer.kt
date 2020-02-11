@@ -3,34 +3,40 @@ package silentorb.imp.intellij.language
 import com.intellij.lexer.Lexer
 import com.intellij.lexer.LexerPosition
 import com.intellij.psi.tree.IElementType
+import silentorb.imp.parsing.general.Position
+import silentorb.imp.parsing.general.Token
+import silentorb.imp.parsing.general.newPosition
+import silentorb.imp.parsing.lexer.nextToken
 
-class ImpLexerPosition : LexerPosition {
+class ImpLexerPosition(val value: Int) : LexerPosition {
   override fun getState(): Int {
     return 0
   }
 
   override fun getOffset(): Int {
-    return 0
+    return value
   }
 }
 
 class ImpLexer : Lexer() {
   var buffer: CharSequence? = null
+  var position: Position = newPosition()
+  var token: Token? = null
 
   override fun getState(): Int {
     return 0
   }
 
   override fun getTokenStart(): Int {
-    return 0
+    return token?.range?.start?.index ?: 0
   }
 
   override fun getBufferEnd(): Int {
-    return 0
+    return buffer?.length ?: 0
   }
 
   override fun getCurrentPosition(): LexerPosition {
-    return ImpLexerPosition()
+    return ImpLexerPosition(position.index)
   }
 
   override fun getBufferSequence(): CharSequence {
@@ -39,21 +45,30 @@ class ImpLexer : Lexer() {
 
   override fun start(buffer: CharSequence, startOffset: Int, endOffset: Int, initialState: Int) {
     this.buffer = buffer
+    advance()
   }
 
   override fun getTokenType(): IElementType? {
-    return null
+    return runeTokenTypes[token?.rune]
   }
 
   override fun advance() {
-    val k = 0
+    nextToken(buffer!!, position)
+        .done({ errors ->
+          //          position = Position(buffer!!.length, 0, 0)
+          AssertionError(errors.first().message)
+        }) { step ->
+          position = step.position
+          token = step.token
+        }
   }
 
   override fun getTokenEnd(): Int {
-    return 0
+    return token?.range?.end?.index ?: 0
   }
 
   override fun restore(position: LexerPosition) {
-
+    this.position = Position(position.offset, 0, 0)
+    token = null
   }
 }

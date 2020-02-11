@@ -3,7 +3,7 @@ plugins {
     kotlin("jvm") version "1.3.61"
 }
 
-group = "org.example"
+group = "silentorb.imp"
 version = "1.0-SNAPSHOT"
 
 repositories {
@@ -12,6 +12,10 @@ repositories {
 
 dependencies {
     implementation(kotlin("stdlib-jdk8"))
+    implementation("silentorb.imp:parsing")
+    implementation("silentorb.imp:execution")
+    implementation("silentorb.imp:libraries_standard")
+    implementation("silentorb.imp:libraries_standard_implementation")
 }
 
 // See https://github.com/JetBrains/gradle-intellij-plugin/
@@ -32,6 +36,9 @@ tasks.getByName<org.jetbrains.intellij.tasks.PatchPluginXmlTask>("patchPluginXml
       <em>most HTML tags may be used</em>""")
 }
 
-requires(project, "imp_execution")
-requires(project, "imp_libraries_standard")
-requires(project, "imp_libraries_standard_implementation")
+allprojects {
+    repositories {
+        mavenLocal()
+        mavenCentral()
+    }
+}
