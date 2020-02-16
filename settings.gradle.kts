@@ -12,4 +12,7 @@ import java.nio.file.Path
 
 includeBuild("../imp")
 
-includeBuild("../mythic")
+includeBuild("../mythic/modules/ent")
+includeBuild("../mythic/modules/imaging")
+includeBuild("../mythic/modules/randomly")
+includeBuild("../mythic/modules/spatial")

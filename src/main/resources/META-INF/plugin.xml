@@ -11,10 +11,11 @@
     <depends>com.intellij.modules.lang</depends>
 
     <extensions defaultExtensionNs="com.intellij">
-        <fileType name="Imp file" implementationClass="silentorb.imp.intellij.ImpFileType" fieldName="INSTANCE"
+        <fileType name="Imp file" implementationClass="silentorb.imp.intellij.general.ImpFileType" fieldName="INSTANCE"
                   language="Imp" extensions="imp"/>
-<!--        <lang.parserDefinition language="Imp" implementationClass="silentorb.imp.intellij.language.ImpParserDefinition"/>-->
-        <fileEditorProvider implementation="silentorb.imp.intellij.ImpEditorProvider"/>
+        <lang.parserDefinition language="Imp" implementationClass="silentorb.imp.intellij.language.ImpParserDefinition"/>
+        <fileEditorProvider implementation="silentorb.imp.intellij.ui.ImpEditorProvider"/>
+        <lang.syntaxHighlighterFactory implementationClass="silentorb.imp.highlighting.ImpSyntaxHighlighterFactory"/>
     </extensions>
 
     <actions>
