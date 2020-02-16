@@ -4,28 +4,26 @@ import com.intellij.openapi.components.Service
 import com.intellij.openapi.components.ServiceManager
 import silentorb.imp.core.Namespace
 import silentorb.imp.execution.FunctionImplementationMap
+import silentorb.imp.execution.combineLibraries
+import silentorb.imp.library.implementation.standard.standardLibrary
 import silentorb.imp.library.implementation.standard.standardLibraryImplementation
 import silentorb.imp.library.standard.standardLibraryNamespace
-import silentorb.mythic.imaging.texturingFunctions
+import silentorb.mythic.imaging.texturingLibrary
 
 @Service
 class LanguageService {
-    val context: List<Namespace>
+  val context: List<Namespace>
 
-    val functions: FunctionImplementationMap
+  val functions: FunctionImplementationMap
 
-    init {
-        val imaging = texturingFunctions()
-        val namespace = standardLibraryNamespace()
-        context = listOf(
-            namespace
-                .copy(
-                    functions = namespace.functions.plus(imaging.interfaces)
-                )
-        )
-        functions = standardLibraryImplementation()
-            .plus(imaging.implementation)
-    }
+  init {
+    val library = combineLibraries(
+        standardLibrary(),
+        texturingLibrary()
+    )
+    context = listOf(library.namespace)
+    functions = library.implementation
+  }
 
 }
 
