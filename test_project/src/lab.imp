@@ -1,5 +1,4 @@
 import silentorb.mythic.generation.texturing.*
 
 let dimensions = Dimensions 512 512
-let output = solidColorToBitmap dimensions (SolidColor 1.0 1.0 0.0)
-
+let output = solidColorToBitmap dimensions (SolidColor 0.5 1.0 0.3)

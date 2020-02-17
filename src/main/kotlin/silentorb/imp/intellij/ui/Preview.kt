@@ -8,6 +8,7 @@ import silentorb.imp.intellij.language.initialFunctions
 import silentorb.imp.parsing.general.englishText
 import silentorb.imp.parsing.general.formatError
 import silentorb.imp.parsing.parser.parseText
+import silentorb.mythic.imaging.Bitmap
 import java.nio.charset.Charset
 import javax.swing.JComponent
 import javax.swing.JLabel
@@ -31,6 +32,7 @@ fun newPreview(content: CharSequence): JComponent {
           val output = getGraphOutputNode(graph)
           val value = values[output]
           when (value) {
+            is Bitmap -> newImagePreview(value)
             else -> {
               val typeName = if (value == null)
                 "null"
