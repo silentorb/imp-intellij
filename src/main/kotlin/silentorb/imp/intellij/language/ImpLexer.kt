@@ -4,8 +4,10 @@ import com.intellij.lexer.Lexer
 import com.intellij.lexer.LexerPosition
 import com.intellij.psi.tree.IElementType
 import silentorb.imp.parsing.general.Position
+import silentorb.imp.parsing.general.Range
 import silentorb.imp.parsing.general.Token
 import silentorb.imp.parsing.general.newPosition
+import silentorb.imp.parsing.lexer.Rune
 import silentorb.imp.parsing.lexer.nextToken
 
 class ImpLexerPosition(val value: Int) : LexerPosition {
@@ -22,6 +24,7 @@ class ImpLexer : Lexer() {
   var buffer: CharSequence? = null
   var position: Position = newPosition()
   var token: Token? = null
+  var deferredToken: Token? = null
 
   override fun getState(): Int {
     return 0
@@ -44,6 +47,7 @@ class ImpLexer : Lexer() {
   }
 
   override fun start(buffer: CharSequence, startOffset: Int, endOffset: Int, initialState: Int) {
+    this.position = Position(startOffset, 1, 1)
     this.buffer = buffer
     advance()
   }
@@ -53,14 +57,31 @@ class ImpLexer : Lexer() {
   }
 
   override fun advance() {
-    nextToken(buffer!!, position)
-        .done({ errors ->
-          //          position = Position(buffer!!.length, 0, 0)
-          AssertionError(errors.first().message)
-        }) { step ->
-          position = step.position
-          token = step.token
-        }
+    if (deferredToken != null) {
+      token = deferredToken
+      position = deferredToken!!.range.end
+      deferredToken = null
+    } else {
+      nextToken(buffer!!, position)
+          .done({ errors ->
+            //          position = Position(buffer!!.length, 0, 0)
+            AssertionError(errors.first().message)
+          }) { step ->
+            val stepToken = step.token
+            if (stepToken != null && stepToken.range.start.index > position.index) {
+              token = Token(
+                  Rune.whitespace,
+                  range = Range(position, stepToken.range.start),
+                  value = ""
+              )
+              position = stepToken.range.start
+            }
+            else {
+              position = step.position
+              token = step.token
+            }
+          }
+    }
   }
 
   override fun getTokenEnd(): Int {

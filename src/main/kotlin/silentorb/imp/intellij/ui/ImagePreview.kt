@@ -14,19 +14,6 @@ import javax.swing.ImageIcon
 import javax.swing.JComponent
 import javax.swing.JLabel
 
-fun newImage(dimensions: Vector2i, buffer: ByteBuffer): BufferedImage {
-  buffer.rewind()
-  val byteArray = ByteArray(buffer.capacity())
-  buffer.get(byteArray)
-  val image = ImageUtil.createImage(dimensions.x, dimensions.y, TYPE_3BYTE_BGR)
-  ImageIO.read(ByteArrayInputStream(byteArray))
-//    image.raster.setPixels(0, 0, dimensions.x, dimensions.y,        byteArray)
-//    image.pixelWriter.setPixels(0, 0, dimensions.x, dimensions.y,
-//        PixelFormat.getByteRgbInstance(),
-//        byteArray, 0, dimensions.x * 3)
-  return image
-}
-
 fun newImage(bitmap: Bitmap): BufferedImage {
   val buffer = bitmap.buffer
   val dimensions = bitmap.dimensions
@@ -40,12 +27,8 @@ fun newImage(bitmap: Bitmap): BufferedImage {
   for (i in 0 until buffer.capacity()) {
     array[i] = (buffer.get() * 255).toInt()
   }
-//  buffer.get(array)
   val image = ImageUtil.createImage(dimensions.x, dimensions.y, type)
   image.raster.setPixels(0, 0, dimensions.x, dimensions.y, array)
-//    image.pixelWriter.setPixels(0, 0, dimensions.x, dimensions.y,
-//        PixelFormat.getByteRgbInstance(),
-//        byteArray, 0, dimensions.x * 3)
   return image
 }
 
