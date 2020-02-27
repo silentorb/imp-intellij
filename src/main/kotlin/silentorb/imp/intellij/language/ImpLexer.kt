@@ -62,25 +62,19 @@ class ImpLexer : Lexer() {
       position = deferredToken!!.range.end
       deferredToken = null
     } else {
-      nextToken(buffer!!, position)
-          .done({ errors ->
-            //          position = Position(buffer!!.length, 0, 0)
-            AssertionError(errors.first().message)
-          }) { step ->
-            val stepToken = step.token
-            if (stepToken != null && stepToken.range.start.index > position.index) {
-              token = Token(
-                  Rune.whitespace,
-                  range = Range(position, stepToken.range.start),
-                  value = ""
-              )
-              position = stepToken.range.start
-            }
-            else {
-              position = step.position
-              token = step.token
-            }
-          }
+      val step = nextToken(buffer!!, position)
+      val stepToken = step.token
+      if (stepToken != null && stepToken.range.start.index > position.index) {
+        token = Token(
+            Rune.whitespace,
+            range = Range(position, stepToken.range.start),
+            value = ""
+        )
+        position = stepToken.range.start
+      } else {
+        position = step.position
+        token = step.token
+      }
     }
   }
 

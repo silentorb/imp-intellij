@@ -1,5 +1,11 @@
 import silentorb.mythic.generation.texturing.*
 
 let dimensions = Dimensions 512 512
--- let output = solidColorToBitmap dimensions (SolidColor 0.5 1.0 0.3)
-let output = perlinNoiseColor dimensions 0.1 10 0.5 (SolidColor 0.5 1.0 0.3) (SolidColor 0.0 0.0 0.0)
+
+let output = perlinNoiseColor
+    dimensions = dimensions
+    scale = 0.1
+    octaves = 10
+    roughness = 0.5
+    firstColor = (SolidColor 0.5 1.0 0.4)
+    secondColor = (SolidColor 0.0 0.0 0.0)
