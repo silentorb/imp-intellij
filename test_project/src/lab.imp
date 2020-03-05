@@ -1,6 +1,7 @@
 import silentorb.mythic.generation.texturing.*
 
-let dimensions = Dimensions 512 512
+let length = 512
+let dimensions = Dimensions length length
 
 let output = seamlessColoredNoise
     dimensions = dimensions

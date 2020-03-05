@@ -6,8 +6,6 @@ import silentorb.imp.core.Namespace
 import silentorb.imp.execution.FunctionImplementationMap
 import silentorb.imp.execution.combineLibraries
 import silentorb.imp.library.implementation.standard.standardLibrary
-import silentorb.imp.library.implementation.standard.standardLibraryImplementation
-import silentorb.imp.library.standard.standardLibraryNamespace
 import silentorb.mythic.imaging.texturingLibrary
 
 @Service
