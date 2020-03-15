@@ -1,5 +1,7 @@
 package silentorb.imp.intellij.ui
 
+import com.intellij.openapi.command.CommandProcessor
+import com.intellij.openapi.command.WriteCommandAction
 import com.intellij.openapi.editor.event.DocumentEvent
 import com.intellij.openapi.editor.event.DocumentListener
 import com.intellij.openapi.fileEditor.FileDocumentManager
@@ -18,6 +20,18 @@ import java.nio.charset.Charset
 import javax.swing.JComponent
 import javax.swing.JPanel
 import com.intellij.openapi.editor.Document
+import com.intellij.openapi.editor.event.CaretEvent
+import com.intellij.openapi.editor.event.CaretListener
+import com.intellij.openapi.fileEditor.impl.text.TextEditorImpl
+import com.intellij.psi.PsiDocumentManager
+import com.intellij.psi.PsiFileFactory
+import com.intellij.psi.impl.PsiFileFactoryImpl
+import com.intellij.psi.util.elementType
+import org.jetbrains.annotations.NotNull
+import silentorb.imp.core.mergeNamespaces
+import silentorb.imp.intellij.language.ImpLanguage
+import silentorb.imp.intellij.language.initialContext
+import silentorb.imp.parsing.parser.Dungeon
 
 fun newSplitter(first: JComponent, second: JComponent): JComponent {
   val splitter = JBSplitter(false, 0.6f, 0.20f, 0.80f)
@@ -29,17 +43,37 @@ fun newSplitter(first: JComponent, second: JComponent): JComponent {
   return panel
 }
 
-class ImpFileEditor(project: Project, file: VirtualFile) : FileEditor {
+class ImpFileEditor(val project: Project, file: VirtualFile) : FileEditor {
   val textEditor = TextEditorProvider().createEditor(project, file)
   val preview = JPanel()
   val storedComponent: JComponent = newSplitter(textEditor.component, preview)
   val document: Document
+  val sidePanel = newSidePanel()
+  var controlTracker: ControlTracker? = null
+  var dungeon: Dungeon? = null
+
+  fun caretOffset() = (textEditor as TextEditorImpl).editor.caretModel.offset
+
+  fun changePsiValue(offset: Int, value: String) {
+    val file = PsiDocumentManager.getInstance(project).getPsiFile(document)
+    if (file != null) {
+      val element = file.findElementAt(offset)
+      if (element != null) {
+        WriteCommandAction.runWriteCommandAction(project) {
+          val psiFileFactory = PsiFileFactory.getInstance(project) as PsiFileFactoryImpl
+          val newElement = psiFileFactory.createElementFromText(value, ImpLanguage.INSTANCE, element.elementType!!, null)
+          if (newElement != null)
+            element.replace(newElement)
+//         PsiDocumentManager.getInstance(project).doPostponedOperationsAndUnblockDocument(document)
+        }
+      }
+    }
+  }
 
   fun updatePreviewPanel(code: CharSequence) {
-    preview.removeAll()
-    preview.add(newPreview(code))
-    preview.revalidate()
-    preview.repaint()
+    val result = updateSidePanel(::changePsiValue, sidePanel, code, caretOffset(), controlTracker)
+    dungeon = result.first
+    controlTracker = result.second
   }
 
   val documentListener = object : DocumentListener {
@@ -51,9 +85,18 @@ class ImpFileEditor(project: Project, file: VirtualFile) : FileEditor {
   init {
     document = FileDocumentManager.getInstance().getDocument(file)!!
     document.addDocumentListener(documentListener)
-    val bytes = file.contentsToByteArray()
-    val content = String(bytes, Charset.forName("UTF-8"))
-    preview.add(newPreview(content))
+    preview.add(sidePanel.root)
+    updatePreviewPanel(document.text)
+    (textEditor as TextEditorImpl).editor.caretModel.addCaretListener(object : CaretListener {
+      override fun caretPositionChanged(event: CaretEvent) {
+        val localDungeon = dungeon
+        document.getLineStartOffset(1)
+        if (localDungeon != null) {
+          val context = initialContext()
+          controlTracker = updateControlPanel(::changePsiValue, mergeNamespaces(context), sidePanel.controls, localDungeon, caretOffset(), controlTracker)
+        }
+      }
+    })
   }
 
   override fun isModified(): Boolean =

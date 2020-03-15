@@ -53,7 +53,11 @@ class ImpLexer : Lexer() {
   }
 
   override fun getTokenType(): IElementType? {
-    return runeTokenTypes[token?.rune]
+    val localToken = token
+    return if (localToken != null && localToken.rune == Rune.identifier && keywordStrings.contains(localToken.value))
+      ImpTokenTypes.keyword
+    else
+      runeTokenTypes[localToken?.rune]
   }
 
   override fun advance() {
