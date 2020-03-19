@@ -1,28 +1,27 @@
 import silentorb.mythic.generation.texturing.*
 import silentorb.mythic.generation.drawing.*
 import silentorb.mythic.math.*
+import silentorb.mythic.injected.scaleLength
 
-let length = 512
+let length = scaleLength 512
 let dimensions = Dimensions length length
 
 let shapes = rectangle (RelativeDimensions 40.0 30.0)
     . translate (Vector2 -10.0 -10.0)
 
-let background = seamlessColoredNoise
+let background = noise
     dimensions = dimensions
-    scale = 0.55
-    octaves = 4
-    roughness = 0.75
-    firstColor = (RgbColor 1.0 0.5 0.4)
-    secondColor = (RgbColor 0.0 0.0 0.0)
+    scale = 63
+    detail = 78
+    variation = 1
+    . colorize (RgbColor 0.29411766 0.19215687 0.6) (RgbColor 0.0 0.0 0.0)
 
-let foreground = seamlessColoredNoise
+let foreground = noise
     dimensions = dimensions
-    scale = 0.2
-    octaves = 5
-    roughness = 0.5
-    firstColor = (RgbColor 0.4 1.0 0.4)
-    secondColor = (RgbColor 0.0 0.0 0.0)
+    scale = 52
+    detail = 41
+    variation = 106
+    . colorize (RgbColor 0.4 1.0 0.4) (RgbColor 0.0 0.0 0.0)
 
 let shapeMask = rasterizeShapes (Bitmap 0.0 dimensions) (grayscaleFill 1.0 shapes)
 
