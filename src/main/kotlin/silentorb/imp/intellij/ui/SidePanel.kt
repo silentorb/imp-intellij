@@ -102,7 +102,7 @@ fun updatePreview(graph: Graph, preview: JPanel, scale: Float) {
   }
 }
 
-fun updateSidePanel(changePsiValue: ChangePsiValue, sidePanel: SidePanel, content: CharSequence, caretOffset: Int, tracker: ControlTracker?): Pair<Dungeon, ControlTracker?> {
+fun updateSidePanel2(getPsiElement: GetPsiValue2, changePsiValue: ChangePsiValue, sidePanel: SidePanel, content: CharSequence, caretOffset: Int, tracker: ControlTracker?): Pair<Dungeon, ControlTracker?> {
   val preview = sidePanel.previewContainer
   val context = initialContext()
   val (dungeon, errors) = parseText(context)(content)
@@ -123,6 +123,6 @@ fun updateSidePanel(changePsiValue: ChangePsiValue, sidePanel: SidePanel, conten
       updatePreview(graph, preview, 0.25f)
     }
   }
-  val newTracker = updateControlPanel(changePsiValue, mergeNamespaces(context), sidePanel.controls, dungeon, caretOffset, tracker)
+  val newTracker = updateControlPanel(getPsiElement, changePsiValue, mergeNamespaces(context), sidePanel.controls, dungeon, caretOffset, tracker)
   return Pair(dungeon, newTracker)
 }

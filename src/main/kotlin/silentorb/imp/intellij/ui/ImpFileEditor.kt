@@ -1,6 +1,5 @@
 package silentorb.imp.intellij.ui
 
-import com.intellij.openapi.command.CommandProcessor
 import com.intellij.openapi.command.WriteCommandAction
 import com.intellij.openapi.editor.event.DocumentEvent
 import com.intellij.openapi.editor.event.DocumentListener
@@ -16,7 +15,6 @@ import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.ui.JBSplitter
 import java.awt.BorderLayout
 import java.beans.PropertyChangeListener
-import java.nio.charset.Charset
 import javax.swing.JComponent
 import javax.swing.JPanel
 import com.intellij.openapi.editor.Document
@@ -27,7 +25,6 @@ import com.intellij.psi.PsiDocumentManager
 import com.intellij.psi.PsiFileFactory
 import com.intellij.psi.impl.PsiFileFactoryImpl
 import com.intellij.psi.util.elementType
-import org.jetbrains.annotations.NotNull
 import silentorb.imp.core.mergeNamespaces
 import silentorb.imp.intellij.language.ImpLanguage
 import silentorb.imp.intellij.language.initialContext
@@ -54,24 +51,29 @@ class ImpFileEditor(val project: Project, file: VirtualFile) : FileEditor {
 
   fun caretOffset() = (textEditor as TextEditorImpl).editor.caretModel.offset
 
-  fun changePsiValue(offset: Int, value: String) {
+  fun getPsiElement(offset: Int): PsiElementWrapper? {
     val file = PsiDocumentManager.getInstance(project).getPsiFile(document)
-    if (file != null) {
-      val element = file.findElementAt(offset)
-      if (element != null) {
-        WriteCommandAction.runWriteCommandAction(project) {
-          val psiFileFactory = PsiFileFactory.getInstance(project) as PsiFileFactoryImpl
-          val newElement = psiFileFactory.createElementFromText(value, ImpLanguage.INSTANCE, element.elementType!!, null)
-          if (newElement != null)
-            element.replace(newElement)
-//         PsiDocumentManager.getInstance(project).doPostponedOperationsAndUnblockDocument(document)
-        }
+    val element = file?.findElementAt(offset)
+    return if (element != null)
+      PsiElementWrapper(element)
+    else
+      null
+  }
+
+  fun changePsiValue(elementWrapper: PsiElementWrapper, value: String) {
+    WriteCommandAction.runWriteCommandAction(project) {
+      val psiFileFactory = PsiFileFactory.getInstance(project) as PsiFileFactoryImpl
+      val element = elementWrapper.element
+      val newElement = psiFileFactory.createElementFromText(value, ImpLanguage.INSTANCE, element.elementType!!, null)
+      if (newElement != null) {
+        val result = element.replace(newElement)
+        elementWrapper.element = result.firstChild
       }
     }
   }
 
   fun updatePreviewPanel(code: CharSequence) {
-    val result = updateSidePanel(::changePsiValue, sidePanel, code, caretOffset(), controlTracker)
+    val result = updateSidePanel2(::getPsiElement, ::changePsiValue, sidePanel, code, caretOffset(), controlTracker)
     dungeon = result.first
     controlTracker = result.second
   }
@@ -93,7 +95,7 @@ class ImpFileEditor(val project: Project, file: VirtualFile) : FileEditor {
         document.getLineStartOffset(1)
         if (localDungeon != null) {
           val context = initialContext()
-          controlTracker = updateControlPanel(::changePsiValue, mergeNamespaces(context), sidePanel.controls, localDungeon, caretOffset(), controlTracker)
+          controlTracker = updateControlPanel(::getPsiElement, ::changePsiValue, mergeNamespaces(context), sidePanel.controls, localDungeon, caretOffset(), controlTracker)
         }
       }
     })
