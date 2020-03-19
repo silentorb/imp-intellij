@@ -73,7 +73,7 @@ class ImpFileEditor(val project: Project, file: VirtualFile) : FileEditor {
   }
 
   fun updatePreviewPanel(code: CharSequence) {
-    val result = updateSidePanel2(::getPsiElement, ::changePsiValue, sidePanel, code, caretOffset(), controlTracker)
+    val result = updateSidePanel(::getPsiElement, ::changePsiValue, sidePanel, code, caretOffset(), controlTracker)
     dungeon = result.first
     controlTracker = result.second
   }

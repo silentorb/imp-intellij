@@ -78,11 +78,15 @@ fun processGraphCancelable(graph: Graph, scale: Float): OutputValues? {
   return values
 }
 
+private val lock2 = ReentrantLock()
+
 fun updatePreview(graph: Graph, preview: JPanel, scale: Float) {
   val graphHashCode = graph.hashCode()
   thread(start = true) {
+    lock2.lock()
     ++previewThreadCount
-//    println("Thread count inc: $previewThreadCount")
+    lock2.unlock()
+    println("Thread count inc: $previewThreadCount")
     val values = processGraphCancelable(graph, scale)
     val output = getGraphOutputNode(graph)
     if (values != null) {
@@ -97,12 +101,14 @@ fun updatePreview(graph: Graph, preview: JPanel, scale: Float) {
       }
       lock.unlock()
     }
+    lock2.lock()
     --previewThreadCount
-//    println("Thread count dec: $previewThreadCount")
+    lock2.unlock()
+    println("Thread count dec: $previewThreadCount")
   }
 }
 
-fun updateSidePanel2(getPsiElement: GetPsiValue2, changePsiValue: ChangePsiValue, sidePanel: SidePanel, content: CharSequence, caretOffset: Int, tracker: ControlTracker?): Pair<Dungeon, ControlTracker?> {
+fun updateSidePanel(getPsiElement: GetPsiValue, changePsiValue: ChangePsiValue, sidePanel: SidePanel, content: CharSequence, caretOffset: Int, tracker: ControlTracker?): Pair<Dungeon, ControlTracker?> {
   val preview = sidePanel.previewContainer
   val context = initialContext()
   val (dungeon, errors) = parseText(context)(content)
@@ -120,7 +126,7 @@ fun updateSidePanel2(getPsiElement: GetPsiValue2, changePsiValue: ChangePsiValue
       previewState.graph = graph.hashCode()
       previewState.scale = 0f
       updatePreview(graph, preview, 1f)
-      updatePreview(graph, preview, 0.25f)
+//      updatePreview(graph, preview, 0.25f)
     }
   }
   val newTracker = updateControlPanel(getPsiElement, changePsiValue, mergeNamespaces(context), sidePanel.controls, dungeon, caretOffset, tracker)
