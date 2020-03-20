@@ -1,5 +1,6 @@
 package silentorb.imp.intellij.ui
 
+import com.intellij.ide.util.PropertiesComponent
 import com.intellij.ui.layout.selected
 import silentorb.mythic.imaging.Bitmap
 import silentorb.mythic.imaging.BufferedImageType
@@ -15,12 +16,18 @@ fun newImagePreview(image: Image): JComponent {
   return JLabel(ImageIcon(image))
 }
 
-private var tiling: Boolean = true
+private const val tilingConfigKey = "silentorb.imp.intellij.config.tiling"
+fun getTiling():Boolean =
+    PropertiesComponent.getInstance().getBoolean(tilingConfigKey, false)
+
+fun setTiling(value: Boolean) {
+  PropertiesComponent.getInstance().setValue(tilingConfigKey, value)
+}
 
 fun newImagePreviewChild(fullImage: BufferedImage, dimensions: Vector2i): JComponent {
   val adjustmentX = 512f / dimensions.x
   val adjustmentY = 512f / dimensions.y
-  return if (tiling) {
+  return if (getTiling()) {
     val image = fullImage.getScaledInstance(
         (dimensions.x * adjustmentX / 3).toInt(),
         (dimensions.y * adjustmentY / 3).toInt()
@@ -48,19 +55,14 @@ fun newImagePreview(bitmap: Bitmap): JComponent {
 
   val container = JPanel()
   container.layout = BoxLayout(container, BoxLayout.Y_AXIS)
-//  container.add(child)
   val previewWrapper = JPanel()
   container.add(previewWrapper)
   previewWrapper.add(child)
   val toggleTiling = JCheckBox("Tile")
-  toggleTiling.isSelected = tiling
+  toggleTiling.isSelected = getTiling()
   toggleTiling.addItemListener {
-    tiling = !tiling
+    setTiling(!getTiling())
     replacePanelContents(previewWrapper, newImagePreviewChild(fullImage, dimensions))
-//    container.remove(0)
-//    container.add(newImagePreviewChild(fullImage, dimensions), 0)
-//    container.revalidate()
-//    container.repaint()
   }
   container.add(toggleTiling)
 
