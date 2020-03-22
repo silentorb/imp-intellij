@@ -6,10 +6,6 @@ import silentorb.imp.core.getGraphOutputNode
 import silentorb.imp.execution.execute
 import silentorb.imp.intellij.language.initialFunctions
 import silentorb.mythic.imaging.*
-import silentorb.mythic.imaging.operators.samplertoBitmap
-import silentorb.mythic.imaging.operators.withBitmapBuffer
-import silentorb.mythic.imaging.operators.withGrayscaleBuffer
-import silentorb.mythic.spatial.Vector2i
 import java.util.concurrent.locks.ReentrantLock
 import javax.swing.JComponent
 import javax.swing.JLabel
@@ -19,7 +15,7 @@ import kotlin.concurrent.thread
 
 data class PreviewDisplay(
     val component: JComponent,
-    val update: (PathKey, Any) -> Unit = { _, _ -> }
+    val update: (PathKey, Any, Long) -> Unit = { _, _,_ -> }
 )
 
 class PreviewContainer : JPanel() {
@@ -45,15 +41,16 @@ fun newPreview(type: PathKey): PreviewDisplay {
   }
 }
 
-fun updatePreview(graph: Graph, preview: PreviewContainer, type: PathKey, value: Any) {
+fun updatePreview(preview: PreviewContainer, type: PathKey, value: Any, timestamp: Long) {
   if (type != preview.type) {
+    preview.type = type
     val newDisplay = newPreview(type)
     replacePanelContents(preview, newDisplay.component)
     preview.display = newDisplay
   }
   val display = preview.display
   if (display != null) {
-    display.update(type, value)
+    display.update(type, value, timestamp)
   }
 }
 
@@ -61,15 +58,34 @@ private var previewThreadCount: Int = 0
 
 private val lock = ReentrantLock()
 
-private val lock2 = ReentrantLock()
+private val timestampLock = ReentrantLock()
 
-fun updatePreview(graph: Graph, preview: PreviewContainer) {
-  val graphHashCode = graph.hashCode()
+private var currentTimestamp = 0L
+
+fun isPreviewOutdated(timestamp: Long) =
+    timestamp < currentTimestamp
+
+fun trySetPreviewTimestamp(timestamp: Long): Boolean {
+  timestampLock.lock()
+  return if (timestamp > currentTimestamp) {
+    currentTimestamp = timestamp
+    timestampLock.unlock()
+    true
+  } else {
+    timestampLock.unlock()
+    false
+  }
+}
+
+fun updatePreview(graph: Graph, preview: PreviewContainer, timestamp: Long) {
+  if (!trySetPreviewTimestamp(timestamp))
+    return
+
   thread(start = true) {
-    lock2.lock()
+    timestampLock.lock()
     ++previewThreadCount
-    lock2.unlock()
-    println("Thread count inc: $previewThreadCount")
+    timestampLock.unlock()
+//    println("Thread count inc: $previewThreadCount")
     val functions = initialFunctions()
     val values = execute(functions, graph)
     val output = getGraphOutputNode(graph)
@@ -79,13 +95,13 @@ fun updatePreview(graph: Graph, preview: PreviewContainer) {
 
       lock.lock()
       SwingUtilities.invokeLater {
-        updatePreview(graph, preview, type, value)
+        updatePreview(preview, type, value, timestamp)
       }
       lock.unlock()
     }
-    lock2.lock()
+    timestampLock.lock()
     --previewThreadCount
-    lock2.unlock()
-    println("Thread count dec: $previewThreadCount")
+    timestampLock.unlock()
+//    println("Thread count dec: $previewThreadCount")
   }
 }

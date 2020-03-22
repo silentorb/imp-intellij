@@ -8,7 +8,9 @@ import java.awt.Dimension
 import java.awt.GridLayout
 import java.awt.Image
 import java.awt.image.BufferedImage
+import java.util.concurrent.locks.ReentrantLock
 import javax.swing.*
+import kotlin.concurrent.thread
 
 data class ImageArtifact(
     val data: BufferedImage
@@ -16,11 +18,14 @@ data class ImageArtifact(
 
 typealias CellImageMap = Map<Vector2i, ImageArtifact>
 
+private val gridLock = ReentrantLock()
+
 class ImagePreviewPanel : JPanel() {
   var grid = newImagePreviewChild()
   var images: CellImageMap = mapOf()
   var source: Any? = null
   var sourceType: PathKey? = null
+  var timestamp: Long? = null
 }
 
 private val dimensions = Vector2i(512, 512)
@@ -66,17 +71,25 @@ fun fillImageGrid(grid: JPanel, location: Vector2i, fullImage: BufferedImage) {
   val divisions = repetitions * cellCount
   val divisionDimensions = dimensions / divisions
   val image = fullImage.getScaledInstance(divisionDimensions.x, divisionDimensions.y, Image.SCALE_DEFAULT)
-  for (y in 0 until repetitions.y) {
-    for (x in 0 until repetitions.x) {
-      val index = x * repetitions.x + location.x + y * repetitions.y * repetitions.x + location.y * cellCount.x
+  val scalar1 = cellCount.x
+  val scalar2 = scalar1 * repetitions.x
+  val scalar3 = scalar2 * cellCount.y
+  for (repetitionY in 0 until repetitions.y) {
+    for (repetitionX in 0 until repetitions.x) {
+      val index = location.x +
+          scalar1 * repetitionX +
+          scalar2 * location.y +
+          scalar3 * repetitionY
       grid.remove(index)
       grid.add(newImageElement(image), index)
-      val k = 0
     }
   }
 }
 
-fun updateImagePreview(type: PathKey, value: Any, container: ImagePreviewPanel) {
+fun updateImagePreview(type: PathKey, value: Any, timestamp: Long, container: ImagePreviewPanel) {
+  if (isPreviewOutdated(timestamp))
+    return
+
   val sampleWriter = if (type == rgbSamplerKey)
     newRgbSampleWriter(value as RgbSampler)
   else
@@ -90,13 +103,34 @@ fun updateImagePreview(type: PathKey, value: Any, container: ImagePreviewPanel) 
 
   val cellDimensions = dimensions / cellCount
 
-  for (cellCoordinate in cellCoordinates) {
-    val partialImage = rgbSamplerToBufferedImage(dimensions, sampleWriter,
-        cellCoordinate * cellDimensions, cellDimensions
-    )
-    fillImageGrid(container.grid, cellCoordinate, partialImage)
+  thread(start = true) {
+    var i = 0
+    for (cellCoordinate in cellCoordinates) {
+      if (isPreviewOutdated(timestamp)) {
+        println("$timestamp Canceled1")
+        break
+      }
+      val partialImage = rgbSamplerToBufferedImage(dimensions, sampleWriter,
+          cellCoordinate * cellDimensions, cellDimensions
+      )
+
+      if (isPreviewOutdated(timestamp)) {
+        println("$timestamp Canceled2")
+        break
+      }
+      SwingUtilities.invokeLater {
+        gridLock.lock()
+        println("$timestamp Drawing ${i++}")
+        fillImageGrid(container.grid, cellCoordinate, partialImage)
+        container.grid.revalidate()
+        container.grid.repaint()
+        gridLock.unlock()
+      }
+    }
   }
 }
+
+private val sourceLock = ReentrantLock()
 
 fun newImagePreview(): PreviewDisplay {
   val container = ImagePreviewPanel()
@@ -111,20 +145,26 @@ fun newImagePreview(): PreviewDisplay {
     val grid = newImagePreviewChild()
     container.grid = grid
     replacePanelContents(previewWrapper, grid)
+    sourceLock.lock()
     val source = container.source
     val sourceType = container.sourceType
-    if (source != null && sourceType != null) {
-      updateImagePreview(sourceType, source, container)
+    val timestamp = container.timestamp
+    sourceLock.unlock()
+    if (source != null && sourceType != null && timestamp != null) {
+      updateImagePreview(sourceType, source, timestamp, container)
     }
   }
   container.add(toggleTiling)
 
   return PreviewDisplay(
       component = container,
-      update = { type, value ->
+      update = { type, value, timestamp ->
+        sourceLock.lock()
         container.sourceType = type
         container.source = value
-        updateImagePreview(type, value, container)
+        container.timestamp = timestamp
+        sourceLock.unlock()
+        updateImagePreview(type, value, timestamp, container)
       }
   )
 }
