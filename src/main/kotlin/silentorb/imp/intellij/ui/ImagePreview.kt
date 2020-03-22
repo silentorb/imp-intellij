@@ -104,24 +104,25 @@ fun updateImagePreview(type: PathKey, value: Any, timestamp: Long, container: Im
   val cellDimensions = dimensions / cellCount
 
   thread(start = true) {
-    var i = 0
+//    var i = 0
     for (cellCoordinate in cellCoordinates) {
       if (isPreviewOutdated(timestamp)) {
-        println("$timestamp Canceled1")
+//        println("$timestamp Canceled1")
         break
       }
-      val partialImage = rgbSamplerToBufferedImage(dimensions, sampleWriter,
+      val image = newBufferedImage(cellDimensions, sampleWriter.depth)
+      samplerToBufferedImage(sampleWriter, image, dimensions,
           cellCoordinate * cellDimensions, cellDimensions
       )
 
       if (isPreviewOutdated(timestamp)) {
-        println("$timestamp Canceled2")
+//        println("$timestamp Canceled2")
         break
       }
       SwingUtilities.invokeLater {
         gridLock.lock()
-        println("$timestamp Drawing ${i++}")
-        fillImageGrid(container.grid, cellCoordinate, partialImage)
+//        println("$timestamp Drawing ${i++}")
+        fillImageGrid(container.grid, cellCoordinate, image)
         container.grid.revalidate()
         container.grid.repaint()
         gridLock.unlock()

@@ -12,6 +12,6 @@ let foreground = noise
     scale = 52
     detail = 41
     variation = 106
-    . colorize (RgbColor 0.4 1.0 0.4) (RgbColor 0.0 0.0 0.0)
+    . colorize (RgbColor 0.3137255 0.84313726 0.3882353) (RgbColor 0.0 0.0 0.0)
 
 let output = mask foreground background (checkers 3 3)
