@@ -15,7 +15,7 @@ import kotlin.concurrent.thread
 
 data class PreviewDisplay(
     val component: JComponent,
-    val update: (PathKey, Any, Long) -> Unit = { _, _,_ -> }
+    val update: (PathKey, Graph, Long) -> Unit = { _, _, _ -> }
 )
 
 class PreviewContainer : JPanel() {
@@ -41,7 +41,7 @@ fun newPreview(type: PathKey): PreviewDisplay {
   }
 }
 
-fun updatePreview(preview: PreviewContainer, type: PathKey, value: Any, timestamp: Long) {
+fun updatePreview(preview: PreviewContainer, graph: Graph, type: PathKey, timestamp: Long) {
   if (type != preview.type) {
     preview.type = type
     val newDisplay = newPreview(type)
@@ -50,7 +50,7 @@ fun updatePreview(preview: PreviewContainer, type: PathKey, value: Any, timestam
   }
   val display = preview.display
   if (display != null) {
-    display.update(type, value, timestamp)
+    display.update(type, graph, timestamp)
   }
 }
 
@@ -86,16 +86,14 @@ fun updatePreview(graph: Graph, preview: PreviewContainer, timestamp: Long) {
     ++previewThreadCount
     timestampLock.unlock()
 //    println("Thread count inc: $previewThreadCount")
-    val functions = initialFunctions()
-    val values = execute(functions, graph)
+
     val output = getGraphOutputNode(graph)
-    val value = values[output]
     val type = graph.types[output]
-    if (value != null && type != null) {
+    if (type != null) {
 
       lock.lock()
       SwingUtilities.invokeLater {
-        updatePreview(preview, type, value, timestamp)
+        updatePreview(preview, graph, type, timestamp)
       }
       lock.unlock()
     }

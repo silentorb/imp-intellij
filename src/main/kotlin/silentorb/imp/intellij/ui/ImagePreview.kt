@@ -1,7 +1,13 @@
 package silentorb.imp.intellij.ui
 
 import com.intellij.ide.util.PropertiesComponent
+import silentorb.imp.core.Graph
+import silentorb.imp.core.Id
 import silentorb.imp.core.PathKey
+import silentorb.imp.core.getGraphOutputNode
+import silentorb.imp.execution.arrangeGraphSequence
+import silentorb.imp.execution.execute
+import silentorb.imp.intellij.language.initialFunctions
 import silentorb.mythic.imaging.*
 import silentorb.mythic.spatial.Vector2i
 import java.awt.Dimension
@@ -16,16 +22,18 @@ data class ImageArtifact(
     val data: BufferedImage
 )
 
-typealias CellImageMap = Map<Vector2i, ImageArtifact>
-
 private val gridLock = ReentrantLock()
+
+data class ImagePreviewState(
+    val graph: Graph,
+    val steps: List<Id>,
+    val type: PathKey,
+    val timestamp: Long
+)
 
 class ImagePreviewPanel : JPanel() {
   var grid = newImagePreviewChild()
-  var images: CellImageMap = mapOf()
-  var source: Any? = null
-  var sourceType: PathKey? = null
-  var timestamp: Long? = null
+  var state: ImagePreviewState? = null
 }
 
 private val dimensions = Vector2i(512, 512)
@@ -86,14 +94,14 @@ fun fillImageGrid(grid: JPanel, location: Vector2i, fullImage: BufferedImage) {
   }
 }
 
-fun updateImagePreview(type: PathKey, value: Any, timestamp: Long, container: ImagePreviewPanel) {
+fun updateImagePreview(state: ImagePreviewState, container: ImagePreviewPanel) {
+  val timestamp = state.timestamp
+  val graph = state.graph
+  val steps = state.steps
+  val type = state.type
+
   if (isPreviewOutdated(timestamp))
     return
-
-  val sampleWriter = if (type == rgbSamplerKey)
-    newRgbSampleWriter(value as RgbSampler)
-  else
-    newFloatSampleWriter(value as FloatSampler)
 
   val cellCoordinates = (0 until cellCount.y).flatMap { y ->
     (0 until cellCount.x).map { x ->
@@ -102,6 +110,7 @@ fun updateImagePreview(type: PathKey, value: Any, timestamp: Long, container: Im
   }
 
   val cellDimensions = dimensions / cellCount
+  val functions = initialFunctions()
 
   thread(start = true) {
 //    var i = 0
@@ -110,6 +119,17 @@ fun updateImagePreview(type: PathKey, value: Any, timestamp: Long, container: Im
 //        println("$timestamp Canceled1")
         break
       }
+      val values = execute(functions, graph, steps)
+      val output = getGraphOutputNode(graph)
+      val value = values[output]
+      if (value == null)
+        break
+
+      val sampleWriter = if (type == rgbSamplerKey)
+        newRgbSampleWriter(value as RgbSampler)
+      else
+        newFloatSampleWriter(value as FloatSampler)
+
       val image = newBufferedImage(cellDimensions, sampleWriter.depth)
       samplerToBufferedImage(sampleWriter, image, dimensions,
           cellCoordinate * cellDimensions, cellDimensions
@@ -133,6 +153,20 @@ fun updateImagePreview(type: PathKey, value: Any, timestamp: Long, container: Im
 
 private val sourceLock = ReentrantLock()
 
+fun updateImagePreview(type: PathKey, graph: Graph, timestamp: Long, container: ImagePreviewPanel) {
+  val steps = arrangeGraphSequence(graph)
+  sourceLock.lock()
+  val state = ImagePreviewState(
+      type = type,
+      graph = graph,
+      steps = steps,
+      timestamp = timestamp
+  )
+  container.state = state
+  sourceLock.unlock()
+  updateImagePreview(state, container)
+}
+
 fun newImagePreview(): PreviewDisplay {
   val container = ImagePreviewPanel()
   container.layout = BoxLayout(container, BoxLayout.Y_AXIS)
@@ -147,25 +181,18 @@ fun newImagePreview(): PreviewDisplay {
     container.grid = grid
     replacePanelContents(previewWrapper, grid)
     sourceLock.lock()
-    val source = container.source
-    val sourceType = container.sourceType
-    val timestamp = container.timestamp
+    val state = container.state
     sourceLock.unlock()
-    if (source != null && sourceType != null && timestamp != null) {
-      updateImagePreview(sourceType, source, timestamp, container)
+    if (state != null) {
+      updateImagePreview(state, container)
     }
   }
   container.add(toggleTiling)
 
   return PreviewDisplay(
       component = container,
-      update = { type, value, timestamp ->
-        sourceLock.lock()
-        container.sourceType = type
-        container.source = value
-        container.timestamp = timestamp
-        sourceLock.unlock()
-        updateImagePreview(type, value, timestamp, container)
+      update = { type, graph, timestamp ->
+        updateImagePreview(type, graph, timestamp, container)
       }
   )
 }
