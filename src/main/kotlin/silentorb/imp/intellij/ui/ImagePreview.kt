@@ -31,12 +31,12 @@ data class ImagePreviewState(
     val timestamp: Long
 )
 
-class ImagePreviewPanel : JPanel() {
-  var grid = newImagePreviewChild()
+class ImagePreviewPanel(dimensions: Vector2i) : JPanel() {
+  var grid = newImagePreviewChild(dimensions)
   var state: ImagePreviewState? = null
 }
 
-private val dimensions = Vector2i(512, 512)
+//private val dimensions = Vector2i(512, 512)
 
 val cellCount = Vector2i(4, 4)
 
@@ -59,7 +59,7 @@ fun newImageElement(image: Image): JComponent {
   return JLabel(ImageIcon(image))
 }
 
-fun newImagePreviewChild(): JPanel {
+fun newImagePreviewChild(dimensions: Vector2i): JPanel {
   val repetitions = getRepetitions()
   val divisions = repetitions * cellCount
   val grid = JPanel()
@@ -74,7 +74,7 @@ fun newImagePreviewChild(): JPanel {
   return grid
 }
 
-fun fillImageGrid(grid: JPanel, location: Vector2i, fullImage: BufferedImage) {
+fun fillImageGrid(dimensions: Vector2i, grid: JPanel, location: Vector2i, fullImage: BufferedImage) {
   val repetitions = getRepetitions()
   val divisions = repetitions * cellCount
   val divisionDimensions = dimensions / divisions
@@ -94,7 +94,7 @@ fun fillImageGrid(grid: JPanel, location: Vector2i, fullImage: BufferedImage) {
   }
 }
 
-fun updateImagePreview(state: ImagePreviewState, container: ImagePreviewPanel) {
+fun updateImagePreview(state: ImagePreviewState, container: ImagePreviewPanel, dimensions: Vector2i) {
   val timestamp = state.timestamp
   val graph = state.graph
   val steps = state.steps
@@ -142,7 +142,7 @@ fun updateImagePreview(state: ImagePreviewState, container: ImagePreviewPanel) {
       SwingUtilities.invokeLater {
         gridLock.lock()
 //        println("$timestamp Drawing ${i++}")
-        fillImageGrid(container.grid, cellCoordinate, image)
+        fillImageGrid(dimensions, container.grid, cellCoordinate, image)
         container.grid.revalidate()
         container.grid.repaint()
         gridLock.unlock()
@@ -153,7 +153,7 @@ fun updateImagePreview(state: ImagePreviewState, container: ImagePreviewPanel) {
 
 private val sourceLock = ReentrantLock()
 
-fun updateImagePreview(type: PathKey, graph: Graph, timestamp: Long, container: ImagePreviewPanel) {
+fun updateImagePreview(type: PathKey, graph: Graph, timestamp: Long, container: ImagePreviewPanel, dimensions: Vector2i) {
   val steps = arrangeGraphSequence(graph)
   sourceLock.lock()
   val state = ImagePreviewState(
@@ -164,11 +164,11 @@ fun updateImagePreview(type: PathKey, graph: Graph, timestamp: Long, container: 
   )
   container.state = state
   sourceLock.unlock()
-  updateImagePreview(state, container)
+  updateImagePreview(state, container, dimensions)
 }
 
-fun newImagePreview(): PreviewDisplay {
-  val container = ImagePreviewPanel()
+fun newImagePreview(dimensions: Vector2i): PreviewDisplay {
+  val container = ImagePreviewPanel(dimensions)
   container.layout = BoxLayout(container, BoxLayout.Y_AXIS)
   val previewWrapper = JPanel()
   previewWrapper.add(container.grid)
@@ -177,14 +177,14 @@ fun newImagePreview(): PreviewDisplay {
   toggleTiling.isSelected = getTiling()
   toggleTiling.addItemListener {
     setTiling(!getTiling())
-    val grid = newImagePreviewChild()
+    val grid = newImagePreviewChild(dimensions)
     container.grid = grid
     replacePanelContents(previewWrapper, grid)
     sourceLock.lock()
     val state = container.state
     sourceLock.unlock()
     if (state != null) {
-      updateImagePreview(state, container)
+      updateImagePreview(state, container, dimensions)
     }
   }
   container.add(toggleTiling)
@@ -192,7 +192,7 @@ fun newImagePreview(): PreviewDisplay {
   return PreviewDisplay(
       component = container,
       update = { type, graph, timestamp ->
-        updateImagePreview(type, graph, timestamp, container)
+        updateImagePreview(type, graph, timestamp, container, dimensions)
       }
   )
 }

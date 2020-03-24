@@ -30,23 +30,11 @@ import silentorb.imp.intellij.language.ImpLanguage
 import silentorb.imp.intellij.language.initialContext
 import silentorb.imp.parsing.parser.Dungeon
 
-fun newSplitter(first: JComponent, second: JComponent): JComponent {
-  val splitter = JBSplitter(false, 0.6f, 0.20f, 0.80f)
-  splitter.firstComponent = first
-  splitter.secondComponent = second
-  splitter.dividerWidth = 3
-  val panel = JPanel(BorderLayout())
-  panel.add(splitter, BorderLayout.CENTER)
-  return panel
-}
-
 class ImpFileEditor(val project: Project, file: VirtualFile) : FileEditor {
   val textEditor = TextEditorProvider().createEditor(project, file)
-  val preview = JPanel()
-  val storedComponent: JComponent = newSplitter(textEditor.component, preview)
+  val storedComponent: JComponent = textEditor.component
   val document: Document
-  val sidePanel = newSidePanel()
-  var controlTracker: ControlTracker? = null
+//  var controlTracker: ControlTracker? = null
   var dungeon: Dungeon? = null
 
   fun caretOffset() = (textEditor as TextEditorImpl).editor.caretModel.offset
@@ -73,9 +61,9 @@ class ImpFileEditor(val project: Project, file: VirtualFile) : FileEditor {
   }
 
   fun updatePreviewPanel(code: CharSequence) {
-    val result = updateSidePanel(::getPsiElement, ::changePsiValue, sidePanel, code, caretOffset(), controlTracker)
-    dungeon = result.first
-    controlTracker = result.second
+//    val result = updateSidePanel(::getPsiElement, ::changePsiValue, sidePanel, code, caretOffset(), controlTracker)
+//    dungeon = result.first
+//    controlTracker = result.second
   }
 
   val documentListener = object : DocumentListener {
@@ -87,7 +75,6 @@ class ImpFileEditor(val project: Project, file: VirtualFile) : FileEditor {
   init {
     document = FileDocumentManager.getInstance().getDocument(file)!!
     document.addDocumentListener(documentListener)
-    preview.add(sidePanel.root)
     updatePreviewPanel(document.text)
     (textEditor as TextEditorImpl).editor.caretModel.addCaretListener(object : CaretListener {
       override fun caretPositionChanged(event: CaretEvent) {
@@ -95,7 +82,7 @@ class ImpFileEditor(val project: Project, file: VirtualFile) : FileEditor {
         document.getLineStartOffset(1)
         if (localDungeon != null) {
           val context = initialContext()
-          controlTracker = updateControlPanel(::getPsiElement, ::changePsiValue, mergeNamespaces(context), sidePanel.controls, localDungeon, caretOffset(), controlTracker)
+//          controlTracker = updateControlPanel(::getPsiElement, ::changePsiValue, mergeNamespaces(context), sidePanel.controls, localDungeon, caretOffset(), controlTracker)
         }
       }
     })

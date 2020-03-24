@@ -1,6 +1,9 @@
 package silentorb.imp.intellij.ui
 
+import com.intellij.openapi.fileEditor.FileDocumentManager
+import com.intellij.openapi.vfs.VirtualFile
 import silentorb.imp.intellij.language.initialContext
+import silentorb.imp.parsing.general.ParsingErrors
 import silentorb.imp.parsing.general.PartitionedResponse
 import silentorb.imp.parsing.parser.Dungeon
 import silentorb.imp.parsing.parser.parseText
@@ -21,4 +24,16 @@ fun replacePanelContents(panel: JPanel, child: JComponent) {
   panel.add(child)
   panel.revalidate()
   panel.repaint()
+}
+
+fun watchParsed(onChange: (Dungeon?, ParsingErrors) -> Unit): OnActiveFileChange = { file ->
+  if (file == null) {
+    onChange(null, listOf())
+  } else {
+    // Todo: Somehow get shared/cached dungeon from ImpParser
+    val document = FileDocumentManager.getInstance().getDocument(file)!!
+    val context = initialContext()
+    val (dungeon, errors) = parseText(context)(document.text)
+    onChange(dungeon, errors)
+  }
 }

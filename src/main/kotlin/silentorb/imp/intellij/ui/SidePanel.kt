@@ -16,20 +16,6 @@ data class SidePanel(
     val controls: JPanel
 )
 
-fun newSidePanel(): SidePanel {
-  val splitter = JBSplitter(true, 0.6f, 0.20f, 0.80f)
-  val previewContainer = PreviewContainer()
-  val controlList = newControlPanel()
-  splitter.firstComponent = previewContainer
-  splitter.secondComponent = controlList
-  splitter.dividerWidth = 3
-  return SidePanel(
-      root = splitter,
-      previewContainer = previewContainer,
-      controls = controlList
-  )
-}
-
 fun updateSidePanel(getPsiElement: GetPsiValue, changePsiValue: ChangePsiValue, sidePanel: SidePanel, content: CharSequence, caretOffset: Int, tracker: ControlTracker?): Pair<Dungeon, ControlTracker?> {
   val preview = sidePanel.previewContainer
   val context = initialContext()
