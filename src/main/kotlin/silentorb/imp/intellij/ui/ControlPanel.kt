@@ -1,21 +1,59 @@
 package silentorb.imp.intellij.ui
 
+import com.intellij.openapi.fileEditor.FileDocumentManager
+import com.intellij.openapi.fileEditor.FileEditorManager
+import com.intellij.openapi.fileEditor.impl.text.TextEditorImpl
+import com.intellij.openapi.project.Project
+import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.psi.PsiElement
-import silentorb.imp.core.Id
-import silentorb.imp.core.Namespace
-import silentorb.imp.core.NumericTypeConstraint
-import silentorb.imp.core.PathKey
+import com.intellij.ui.content.ContentManager
+import silentorb.imp.core.*
+import silentorb.imp.intellij.language.initialContext
 import silentorb.imp.parsing.general.Range
 import silentorb.imp.parsing.general.isInRange
 import silentorb.imp.parsing.parser.Dungeon
+import silentorb.imp.parsing.parser.parseText
 import silentorb.mythic.imaging.rgbColorKey
 import java.awt.Dimension
 import javax.swing.*
 
-fun newControlPanel(): JPanel {
-  val panel = JPanel()
-  panel.layout = BoxLayout(panel, BoxLayout.Y_AXIS)
-  return panel
+fun getCurrentEditorCaretOffset(project: Project, file: VirtualFile): Int? {
+  val editor = FileEditorManager.getInstance(project).getSelectedEditor(file)
+  return if (editor != null) {
+    (editor as TextEditorImpl).editor.caretModel.offset
+  } else
+    null
+}
+
+class ControlPanel(val project: Project, contentManager: ContentManager) : JPanel() {
+  var tracker: ControlTracker? = null
+  var lastCaretOffset: Int? = null
+  var lastFile: VirtualFile? = null
+  val activeDocumentWatcher = ActiveDocumentWatcher(project) { file ->
+    if (file !== lastFile || (file != null && getCurrentEditorCaretOffset(project, file) != lastCaretOffset)) {
+      lastFile = file
+      if (file == null) {
+        clearControlList(this)
+      } else {
+        // Todo: Somehow get shared/cached dungeon from ImpParser
+        val caretOffset = getCurrentEditorCaretOffset(project, file)
+        lastCaretOffset = caretOffset
+        if (caretOffset != null) {
+          val document = FileDocumentManager.getInstance().getDocument(file)!!
+          val context = initialContext()
+          val (dungeon, errors) = parseText(context)(document.text)
+          if (errors.none()) {
+            updateControlPanel(getPsiElement(project, document), changePsiValue(project), mergeNamespaces(context), this, dungeon, caretOffset, tracker)
+          }
+        }
+      }
+    }
+  }
+
+  init {
+    layout = BoxLayout(this, BoxLayout.Y_AXIS)
+    activeDocumentWatcher.start(contentManager)
+  }
 }
 
 data class ControlTracker(
@@ -123,22 +161,23 @@ fun updateControlList(changePsiValue: ChangePsiValue, values: Map<Id, Any>, fiel
 }
 
 fun updateControlPanel(getPsiElement: GetPsiValue, changePsiValue: ChangePsiValue, namespace: Namespace, controls: JPanel, dungeon: Dungeon, offset: Int, tracker: ControlTracker?): ControlTracker? {
-  val nodeRange = dungeon.nodeMap.entries
-      .firstOrNull { (_, range) -> isInRange(range, offset) }
-
+  val nodeRange = findNodeEntry(dungeon.nodeMap, offset)
   val node = nodeRange?.key
 
   return if (node != null) {
+    println("$node")
     val newTracker = ControlTracker(
         node = node,
         range = nodeRange.value
     )
     if (tracker != newTracker) {
-      clearControlList(controls)
+      controls.removeAll()
       val fields = gatherControlFields(getPsiElement, namespace, dungeon, node)
       fields.forEach { field ->
         controls.add(updateControlList(changePsiValue, dungeon.graph.values, field))
       }
+      controls.revalidate()
+      controls.repaint()
     }
     newTracker
   } else {

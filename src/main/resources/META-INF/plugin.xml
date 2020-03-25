@@ -29,11 +29,14 @@
     </extensions>
 
     <actions>
-        <action id="silentorb.imp.intellij.ui.PreviewNodeAction" class="silentorb.imp.intellij.ui.PreviewNodeAction"
+        <action id="silentorb.imp.intellij.actions.PreviewNodeAction" class="silentorb.imp.intellij.actions.PreviewNodeAction"
                 text="Preview Node"
                 description="Toggles whether to preview the selected node or the default output of the graph">
             <keyboard-shortcut keymap="$default" first-keystroke="F4"/>
             <add-to-group group-id="ToolsMenu" anchor="first"/>
         </action>
+        <action id="silentorb.imp.intellij.actions.ToggleTilingAction"
+                class="silentorb.imp.intellij.actions.ToggleTilingAction" text="Toggle Tiling"
+                description="Toggles texture display between single image and tiling multiple repetitions of the image"/>
     </actions>
 </idea-plugin>

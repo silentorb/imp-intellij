@@ -9,7 +9,7 @@ let background = noise
     . colorize (RgbColor 0.09411765 0.34509805 0.1254902) (RgbColor 0.0 0.0 0.0)
 
 let foreground = noise
-    scale = 52
+    scale = 37
     detail = 41
     variation = 106
     . colorize (RgbColor 0.3137255 0.84313726 0.3882353) (RgbColor 0.0 0.0 0.0)

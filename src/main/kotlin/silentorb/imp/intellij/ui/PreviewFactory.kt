@@ -7,7 +7,7 @@ import com.intellij.ui.content.ContentFactory
 
 class PreviewFactory : ToolWindowFactory {
   override fun createToolWindowContent(project: Project, toolWindow: ToolWindow) {
-    val preview = PreviewContainer(project)
+    val preview = PreviewContainer(project, toolWindow.contentManager)
     val contentFactory = ContentFactory.SERVICE.getInstance()
     val content = contentFactory.createContent(preview, null, false)
     toolWindow.contentManager.addContent(content)

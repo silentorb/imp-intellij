@@ -8,9 +8,10 @@ import javax.swing.BorderFactory
 import javax.swing.JColorChooser
 import javax.swing.JComponent
 import javax.swing.JPanel
+import kotlin.math.round
 
 fun newColorPicker(changePsiValue: ChangePsiValue, psiElements: List<PsiElementWrapper>, values: List<Any>): JComponent {
-  val colorValues = values as List<Float>
+  val colorValues = values as List<Int>
   var color = Color(colorValues[0], colorValues[1], colorValues[2])
   var cancelColor = color
   val colorSample = JPanel()
@@ -24,8 +25,7 @@ fun newColorPicker(changePsiValue: ChangePsiValue, psiElements: List<PsiElementW
       pane.removeChooserPanel(pane.chooserPanels.first())
       val updateColor = { newColor: Color ->
         if (newColor != color) {
-          val components = FloatArray(3) { 0f }
-          newColor.getColorComponents(components)
+          val components = listOf(newColor.red, newColor.green, newColor.blue)
           val offsetIterator = psiElements.iterator()
           for (component in components) {
             changePsiValue(offsetIterator.next(), component.toString())

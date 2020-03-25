@@ -1,0 +1,22 @@
+import silentorb.mythic.generation.texturing.*
+import silentorb.mythic.generation.drawing.*
+import silentorb.mythic.math.*
+
+let background = noise
+    scale = 63
+    detail = 78
+    variation = 1
+    . colorize (RgbColor 33 216 66) (RgbColor 0 0 0)
+
+let foreground = noise
+    scale = 52
+    detail = 41
+    variation = 106
+    . colorize (RgbColor 46 51 132) (RgbColor 0 0 0)
+
+let output = mask foreground background (checkers 3 3)
+    . distort
+        scale = 45
+        detail = 28
+        variation = 18
+        strength = 8

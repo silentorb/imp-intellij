@@ -1,53 +1,99 @@
 package silentorb.imp.intellij.ui
 
+import com.intellij.openapi.Disposable
+import com.intellij.openapi.application.ApplicationManager
+import com.intellij.openapi.editor.Document
+import com.intellij.openapi.editor.event.DocumentEvent
+import com.intellij.openapi.editor.event.DocumentListener
 import com.intellij.openapi.project.Project
+import com.intellij.openapi.util.Disposer
+import com.intellij.ui.content.ContentManager
+import com.intellij.util.messages.MessageBusConnection
 import silentorb.imp.core.Graph
 import silentorb.imp.core.Id
 import silentorb.imp.core.PathKey
 import silentorb.imp.core.getGraphOutputNode
-import silentorb.imp.execution.execute
-import silentorb.imp.intellij.language.initialFunctions
+import silentorb.imp.intellij.messaging.NodePreviewNotifier
+import silentorb.imp.intellij.messaging.ToggleTilingNotifier
+import silentorb.imp.intellij.messaging.nodePreviewTopic
+import silentorb.imp.intellij.messaging.toggleTilingTopic
+import silentorb.imp.parsing.general.ParsingErrors
 import silentorb.imp.parsing.general.englishText
 import silentorb.imp.parsing.general.formatError
-import silentorb.mythic.imaging.*
+import silentorb.imp.parsing.parser.Dungeon
+import silentorb.mythic.imaging.floatSamplerKey
+import silentorb.mythic.imaging.rgbSamplerKey
 import silentorb.mythic.spatial.Vector2i
+import java.awt.GridLayout
 import java.util.concurrent.locks.ReentrantLock
 import javax.swing.JComponent
 import javax.swing.JLabel
 import javax.swing.JPanel
-import javax.swing.SwingUtilities
-import kotlin.concurrent.thread
 
 data class PreviewDisplay(
     val component: JComponent,
-    val update: (PathKey, Graph, Long) -> Unit = { _, _, _ -> }
+    val update: (PathKey, Graph, Long, Id?) -> Unit = { _, _, _, _ -> }
 )
 
-class PreviewContainer(project: Project) : JPanel() {
+class PreviewContainer(project: Project, contentManager: ContentManager) : JPanel(), Disposable {
   var type: PathKey? = null
   var display: PreviewDisplay? = null
   var node: Id? = null
-  val activeDocumentWatcher = ActiveDocumentWatcher(project, this, watchParsed { dungeon, errors ->
-    if (dungeon == null) {
-      removeAll()
-      revalidate()
-      repaint()
+  var previousDocument: Document? = null
+  val self = this
+  val connection: MessageBusConnection
+  var lastDungeon: Dungeon? = null
+  var lastErrors: ParsingErrors = listOf()
+  val documentListener: DocumentListener = object : DocumentListener {
+    override fun documentChanged(event: DocumentEvent) {
+      val (dungeon, errors) = parseDocument(event.document)
+      update(dungeon, errors)
     }
-    else if (errors.any()){
-      val errorPanel = messagePanel(formatError(::englishText, errors.first()))
-      removeAll()
-      add(errorPanel)
-      revalidate()
-      repaint()
+  }
+  val activeDocumentWatcher = ActiveDocumentWatcher(project, watchParsed { dungeon, document, errors ->
+    if (document != previousDocument) {
+      if (previousDocument != null) {
+        previousDocument!!.removeDocumentListener(documentListener)
+      }
+      if (document != null) {
+        document.addDocumentListener(documentListener)
+      }
+      update(dungeon, errors)
+      previousDocument = document
     }
-    else {
-      updatePreview(dungeon.graph, this, System.currentTimeMillis())
-    }
+
 //    println("file change: ${file?.name ?: "none"}")
   })
 
   init {
-    activeDocumentWatcher.start()
+    activeDocumentWatcher.start(contentManager)
+    layout = GridLayout(0, 1)
+    Disposer.register(contentManager, this)
+
+    val bus = ApplicationManager.getApplication().getMessageBus()
+    connection = bus.connect()
+    connection.subscribe(nodePreviewTopic, object : NodePreviewNotifier {
+      override fun handle(newNode: Id?) {
+        if (newNode != node) {
+          node = newNode
+          update(lastDungeon, lastErrors)
+        }
+      }
+    })
+  }
+
+  fun update(dungeon: Dungeon?, errors: ParsingErrors) {
+    lastDungeon = dungeon
+    lastErrors = errors
+    update(this, dungeon, errors)
+  }
+
+  override fun dispose() {
+    val document = previousDocument
+    if (document != null) {
+      document.removeDocumentListener(documentListener)
+    }
+    connection.disconnect()
   }
 }
 
@@ -73,18 +119,22 @@ fun updatePreview(preview: PreviewContainer, graph: Graph, type: PathKey, timest
   if (type != preview.type) {
     preview.type = type
     val newDisplay = newPreview(type, Vector2i(preview.width))
-    replacePanelContents(preview, newDisplay.component)
+    val component = newDisplay.component
+    replacePanelContents(preview, component)
+    val oldComponent = preview.display?.component
+    if (oldComponent is Disposable) {
+      Disposer.dispose(oldComponent)
+    }
     preview.display = newDisplay
+    if (component is Disposable) {
+      Disposer.register(preview, component)
+    }
   }
   val display = preview.display
   if (display != null) {
-    display.update(type, graph, timestamp)
+    display.update(type, graph, timestamp, preview.node)
   }
 }
-
-private var previewThreadCount: Int = 0
-
-private val lock = ReentrantLock()
 
 private val timestampLock = ReentrantLock()
 
@@ -109,30 +159,29 @@ fun updatePreview(graph: Graph, preview: PreviewContainer, timestamp: Long) {
   if (!trySetPreviewTimestamp(timestamp))
     return
 
-  val output = getGraphOutputNode(graph)
+  val output = preview.node ?: getGraphOutputNode(graph)
   val type = graph.types[output]
   if (type != null) {
     updatePreview(preview, graph, type, timestamp)
   }
-//  thread(start = true) {
-//    timestampLock.lock()
-//    ++previewThreadCount
-//    timestampLock.unlock()
-////    println("Thread count inc: $previewThreadCount")
-//
-//    val output = getGraphOutputNode(graph)
-//    val type = graph.types[output]
-//    if (type != null) {
-//
-//      lock.lock()
-//      SwingUtilities.invokeLater {
-//        updatePreview(preview, graph, type, timestamp)
-//      }
-//      lock.unlock()
-//    }
-//    timestampLock.lock()
-//    --previewThreadCount
-//    timestampLock.unlock()
-////    println("Thread count dec: $previewThreadCount")
-//  }
+}
+
+fun update(container: PreviewContainer, dungeon: Dungeon?, errors: ParsingErrors) {
+  if (dungeon == null) {
+    container.type = null
+    container.display = null
+    container.removeAll()
+    container.revalidate()
+    container.repaint()
+  } else if (errors.any()) {
+    container.type = null
+    container.display = null
+    val errorPanel = messagePanel(formatError(::englishText, errors.first()))
+    container.removeAll()
+    container.add(errorPanel)
+    container.revalidate()
+    container.repaint()
+  } else {
+    updatePreview(dungeon.graph, container, System.currentTimeMillis())
+  }
 }

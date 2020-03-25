@@ -1,34 +1,24 @@
 package silentorb.imp.intellij.ui
 
-import com.intellij.openapi.command.WriteCommandAction
+import com.intellij.openapi.editor.Document
+import com.intellij.openapi.editor.event.CaretEvent
+import com.intellij.openapi.editor.event.CaretListener
 import com.intellij.openapi.editor.event.DocumentEvent
 import com.intellij.openapi.editor.event.DocumentListener
 import com.intellij.openapi.fileEditor.FileDocumentManager
 import com.intellij.openapi.fileEditor.FileEditor
 import com.intellij.openapi.fileEditor.FileEditorLocation
 import com.intellij.openapi.fileEditor.FileEditorState
+import com.intellij.openapi.fileEditor.impl.text.TextEditorImpl
 import com.intellij.openapi.fileEditor.impl.text.TextEditorProvider
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.Disposer
 import com.intellij.openapi.util.Key
 import com.intellij.openapi.vfs.VirtualFile
-import com.intellij.ui.JBSplitter
-import java.awt.BorderLayout
-import java.beans.PropertyChangeListener
-import javax.swing.JComponent
-import javax.swing.JPanel
-import com.intellij.openapi.editor.Document
-import com.intellij.openapi.editor.event.CaretEvent
-import com.intellij.openapi.editor.event.CaretListener
-import com.intellij.openapi.fileEditor.impl.text.TextEditorImpl
-import com.intellij.psi.PsiDocumentManager
-import com.intellij.psi.PsiFileFactory
-import com.intellij.psi.impl.PsiFileFactoryImpl
-import com.intellij.psi.util.elementType
-import silentorb.imp.core.mergeNamespaces
-import silentorb.imp.intellij.language.ImpLanguage
 import silentorb.imp.intellij.language.initialContext
 import silentorb.imp.parsing.parser.Dungeon
+import java.beans.PropertyChangeListener
+import javax.swing.JComponent
 
 class ImpFileEditor(val project: Project, file: VirtualFile) : FileEditor {
   val textEditor = TextEditorProvider().createEditor(project, file)
@@ -39,26 +29,6 @@ class ImpFileEditor(val project: Project, file: VirtualFile) : FileEditor {
 
   fun caretOffset() = (textEditor as TextEditorImpl).editor.caretModel.offset
 
-  fun getPsiElement(offset: Int): PsiElementWrapper? {
-    val file = PsiDocumentManager.getInstance(project).getPsiFile(document)
-    val element = file?.findElementAt(offset)
-    return if (element != null)
-      PsiElementWrapper(element)
-    else
-      null
-  }
-
-  fun changePsiValue(elementWrapper: PsiElementWrapper, value: String) {
-    WriteCommandAction.runWriteCommandAction(project) {
-      val psiFileFactory = PsiFileFactory.getInstance(project) as PsiFileFactoryImpl
-      val element = elementWrapper.element
-      val newElement = psiFileFactory.createElementFromText(value, ImpLanguage.INSTANCE, element.elementType!!, null)
-      if (newElement != null) {
-        val result = element.replace(newElement)
-        elementWrapper.element = result.firstChild
-      }
-    }
-  }
 
   fun updatePreviewPanel(code: CharSequence) {
 //    val result = updateSidePanel(::getPsiElement, ::changePsiValue, sidePanel, code, caretOffset(), controlTracker)
