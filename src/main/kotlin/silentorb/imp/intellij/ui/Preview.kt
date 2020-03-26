@@ -28,6 +28,7 @@ import java.util.concurrent.locks.ReentrantLock
 import javax.swing.JComponent
 import javax.swing.JLabel
 import javax.swing.JPanel
+import javax.swing.SwingUtilities
 
 data class PreviewDisplay(
     val component: JComponent,
@@ -44,7 +45,7 @@ class PreviewContainer(project: Project, contentManager: ContentManager) : JPane
   val documentListener: DocumentListener = object : DocumentListener {
     override fun documentChanged(event: DocumentEvent) {
       val response = getDungeonAndErrors(project, event.document)
-      if(response != null) {
+      if (response != null) {
         val (dungeon, errors) = response
         update(dungeon, errors)
       }
@@ -136,9 +137,12 @@ fun updatePreview(preview: PreviewContainer, graph: Graph, type: PathKey, timest
       Disposer.register(preview, component)
     }
   }
-  val display = preview.display
-  if (display != null) {
-    display.update(type, graph, timestamp, node)
+  // The layout of new preview children isn't fully initialized until after this UI tick
+  SwingUtilities.invokeLater {
+    val display = preview.display
+    if (display != null) {
+      display.update(type, graph, timestamp, node)
+    }
   }
 }
 

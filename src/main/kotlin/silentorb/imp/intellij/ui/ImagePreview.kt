@@ -159,6 +159,9 @@ fun updateImagePreview(state: ImagePreviewState, container: ImagePreviewPanel) {
   val cellDimensions = dimensions / cellCount
   val functions = initialFunctions()
 
+  if (container.width == 0) {
+    val j = 0
+  }
   thread(start = true) {
     for (cellCoordinate in cellCoordinates) {
       if (isPreviewOutdated(timestamp) || container.dimensions != dimensions) {
