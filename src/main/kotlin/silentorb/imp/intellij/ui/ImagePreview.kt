@@ -11,8 +11,10 @@ import silentorb.imp.core.Graph
 import silentorb.imp.core.Id
 import silentorb.imp.core.PathKey
 import silentorb.imp.core.getGraphOutputNode
+import silentorb.imp.execution.OutputValues
 import silentorb.imp.execution.arrangeGraphSequence
 import silentorb.imp.execution.execute
+import silentorb.imp.execution.executeStep
 import silentorb.imp.intellij.services.initialFunctions
 import silentorb.imp.intellij.messaging.ToggleTilingNotifier
 import silentorb.imp.intellij.messaging.toggleTilingTopic
@@ -51,7 +53,7 @@ class ImagePreviewPanel(var dimensions: Vector2i) : SimpleToolWindowPanel(true),
   init {
     val bus = ApplicationManager.getApplication().getMessageBus()
     connection = bus.connect()
-    connection.subscribe(toggleTilingTopic, object: ToggleTilingNotifier {
+    connection.subscribe(toggleTilingTopic, object : ToggleTilingNotifier {
       override fun handle(tiling: Boolean) {
         tilingChanged(self)
       }
@@ -163,8 +165,14 @@ fun updateImagePreview(state: ImagePreviewState, container: ImagePreviewPanel) {
 //        println("$timestamp Canceled1")
         break
       }
-      val values = execute(functions, graph, steps)
+      val additionalArguments = mapOf("__globalDimensions" to dimensions)
+      var values: OutputValues = mapOf()
       val output = state.node ?: getGraphOutputNode(graph)
+      for (step in steps) {
+        values = executeStep(functions, graph, values, step, additionalArguments)
+        if (step == output)
+          break
+      }
       val value = values[output]
       if (value == null)
         break
