@@ -8,9 +8,8 @@ import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.psi.PsiElement
 import com.intellij.ui.content.ContentManager
 import silentorb.imp.core.*
-import silentorb.imp.intellij.language.initialContext
+import silentorb.imp.intellij.services.initialContext
 import silentorb.imp.parsing.general.Range
-import silentorb.imp.parsing.general.isInRange
 import silentorb.imp.parsing.parser.Dungeon
 import silentorb.imp.parsing.parser.parseText
 import silentorb.mythic.imaging.rgbColorKey
@@ -165,7 +164,6 @@ fun updateControlPanel(getPsiElement: GetPsiValue, changePsiValue: ChangePsiValu
   val node = nodeRange?.key
 
   return if (node != null) {
-    println("$node")
     val newTracker = ControlTracker(
         node = node,
         range = nodeRange.value

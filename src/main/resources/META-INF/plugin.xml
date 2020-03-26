@@ -15,7 +15,7 @@
                   language="Imp" extensions="imp"/>
         <lang.parserDefinition language="Imp"
                                implementationClass="silentorb.imp.intellij.language.ImpParserDefinition"/>
-<!--        <fileEditorProvider implementation="silentorb.imp.intellij.ui.ImpEditorProvider"/>-->
+        <!--        <fileEditorProvider implementation="silentorb.imp.intellij.ui.ImpEditorProvider"/>-->
         <lang.syntaxHighlighterFactory language="Imp"
                                        implementationClass="silentorb.imp.intellij.highlighting.ImpSyntaxHighlighterFactory"/>
         <lang.commenter language="Imp" implementationClass="silentorb.imp.intellij.editing.ImpCommenter"/>
@@ -26,10 +26,13 @@
         <toolWindow id="Controls" icon="/icons/familiar-tool-window.png" anchor="right"
                     factoryClass="silentorb.imp.intellij.ui.ControlsFactory"
                     secondary="true"/>
+        <annotator language="Imp" implementationClass="silentorb.imp.intellij.language.ImpAnnotator"/>
+        <additionalTextAttributes scheme="Default" file="colorSchemes/Default.xml"/>
     </extensions>
 
     <actions>
-        <action id="silentorb.imp.intellij.actions.PreviewNodeAction" class="silentorb.imp.intellij.actions.PreviewNodeAction"
+        <action id="silentorb.imp.intellij.actions.PreviewNodeAction"
+                class="silentorb.imp.intellij.actions.PreviewNodeAction"
                 text="Preview Node"
                 description="Toggles whether to preview the selected node or the default output of the graph">
             <keyboard-shortcut keymap="$default" first-keystroke="F4"/>

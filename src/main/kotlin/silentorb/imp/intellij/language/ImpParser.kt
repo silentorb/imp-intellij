@@ -5,10 +5,9 @@ import com.intellij.lang.LightPsiParser
 import com.intellij.lang.PsiBuilder
 import com.intellij.lang.PsiParser
 import com.intellij.psi.tree.IElementType
-import silentorb.imp.parsing.general.Response
+import silentorb.imp.intellij.services.initialContext
 import silentorb.imp.parsing.general.englishText
 import silentorb.imp.parsing.parser.parseText
-import silentorb.imp.parsing.parser.parseTextBranching
 
 class ImpParser : PsiParser, LightPsiParser {
   override fun parse(root: IElementType, builder: PsiBuilder): ASTNode {

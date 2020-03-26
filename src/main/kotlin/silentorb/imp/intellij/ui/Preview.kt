@@ -14,9 +14,8 @@ import silentorb.imp.core.Id
 import silentorb.imp.core.PathKey
 import silentorb.imp.core.getGraphOutputNode
 import silentorb.imp.intellij.messaging.NodePreviewNotifier
-import silentorb.imp.intellij.messaging.ToggleTilingNotifier
 import silentorb.imp.intellij.messaging.nodePreviewTopic
-import silentorb.imp.intellij.messaging.toggleTilingTopic
+import silentorb.imp.intellij.services.getDocumentMetadataService
 import silentorb.imp.parsing.general.ParsingErrors
 import silentorb.imp.parsing.general.englishText
 import silentorb.imp.parsing.general.formatError
@@ -38,19 +37,20 @@ data class PreviewDisplay(
 class PreviewContainer(project: Project, contentManager: ContentManager) : JPanel(), Disposable {
   var type: PathKey? = null
   var display: PreviewDisplay? = null
-  var node: Id? = null
   var previousDocument: Document? = null
-  val self = this
   val connection: MessageBusConnection
   var lastDungeon: Dungeon? = null
   var lastErrors: ParsingErrors = listOf()
   val documentListener: DocumentListener = object : DocumentListener {
     override fun documentChanged(event: DocumentEvent) {
-      val (dungeon, errors) = parseDocument(event.document)
-      update(dungeon, errors)
+      val response = getDungeonAndErrors(project, event.document)
+      if(response != null) {
+        val (dungeon, errors) = response
+        update(dungeon, errors)
+      }
     }
   }
-  val activeDocumentWatcher = ActiveDocumentWatcher(project, watchParsed { dungeon, document, errors ->
+  val activeDocumentWatcher = ActiveDocumentWatcher(project, watchParsed(project) { dungeon, document, errors ->
     if (document != previousDocument) {
       if (previousDocument != null) {
         previousDocument!!.removeDocumentListener(documentListener)
@@ -58,8 +58,8 @@ class PreviewContainer(project: Project, contentManager: ContentManager) : JPane
       if (document != null) {
         document.addDocumentListener(documentListener)
       }
-      update(dungeon, errors)
       previousDocument = document
+      update(dungeon, errors)
     }
 
 //    println("file change: ${file?.name ?: "none"}")
@@ -73,9 +73,8 @@ class PreviewContainer(project: Project, contentManager: ContentManager) : JPane
     val bus = ApplicationManager.getApplication().getMessageBus()
     connection = bus.connect()
     connection.subscribe(nodePreviewTopic, object : NodePreviewNotifier {
-      override fun handle(newNode: Id?) {
-        if (newNode != node) {
-          node = newNode
+      override fun handle(document: Document, node: Id?) {
+        if (document == previousDocument) {
           update(lastDungeon, lastErrors)
         }
       }
@@ -85,7 +84,14 @@ class PreviewContainer(project: Project, contentManager: ContentManager) : JPane
   fun update(dungeon: Dungeon?, errors: ParsingErrors) {
     lastDungeon = dungeon
     lastErrors = errors
-    update(this, dungeon, errors)
+    val documentMetadata = getDocumentMetadataService()
+    val document = previousDocument
+    val node = if (document != null)
+      documentMetadata.getPreviewNode(document)
+    else
+      null
+
+    update(this, dungeon, errors, node)
   }
 
   override fun dispose() {
@@ -115,7 +121,7 @@ fun newPreview(type: PathKey, dimensions: Vector2i): PreviewDisplay {
   }
 }
 
-fun updatePreview(preview: PreviewContainer, graph: Graph, type: PathKey, timestamp: Long) {
+fun updatePreview(preview: PreviewContainer, graph: Graph, type: PathKey, timestamp: Long, node: Id?) {
   if (type != preview.type) {
     preview.type = type
     val newDisplay = newPreview(type, Vector2i(preview.width))
@@ -132,7 +138,7 @@ fun updatePreview(preview: PreviewContainer, graph: Graph, type: PathKey, timest
   }
   val display = preview.display
   if (display != null) {
-    display.update(type, graph, timestamp, preview.node)
+    display.update(type, graph, timestamp, node)
   }
 }
 
@@ -155,18 +161,18 @@ fun trySetPreviewTimestamp(timestamp: Long): Boolean {
   }
 }
 
-fun updatePreview(graph: Graph, preview: PreviewContainer, timestamp: Long) {
+fun updatePreview(graph: Graph, preview: PreviewContainer, timestamp: Long, node: Id?) {
   if (!trySetPreviewTimestamp(timestamp))
     return
 
-  val output = preview.node ?: getGraphOutputNode(graph)
+  val output = node ?: getGraphOutputNode(graph)
   val type = graph.types[output]
   if (type != null) {
-    updatePreview(preview, graph, type, timestamp)
+    updatePreview(preview, graph, type, timestamp, node)
   }
 }
 
-fun update(container: PreviewContainer, dungeon: Dungeon?, errors: ParsingErrors) {
+fun update(container: PreviewContainer, dungeon: Dungeon?, errors: ParsingErrors, node: Id?) {
   if (dungeon == null) {
     container.type = null
     container.display = null
@@ -182,6 +188,6 @@ fun update(container: PreviewContainer, dungeon: Dungeon?, errors: ParsingErrors
     container.revalidate()
     container.repaint()
   } else {
-    updatePreview(dungeon.graph, container, System.currentTimeMillis())
+    updatePreview(dungeon.graph, container, System.currentTimeMillis(), node)
   }
 }

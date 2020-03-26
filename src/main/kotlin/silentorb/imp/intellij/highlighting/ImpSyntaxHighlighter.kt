@@ -16,12 +16,14 @@ class ImpSyntaxHighlighter : SyntaxHighlighterBase() {
     val bad = createTextAttributesKey("bad", HighlighterColors.BAD_CHARACTER)
     val keyword = createTextAttributesKey("keyword", DefaultLanguageHighlighterColors.KEYWORD)
     val number = createTextAttributesKey("number", DefaultLanguageHighlighterColors.NUMBER)
+    val previewNode = createTextAttributesKey("previewNode", DefaultLanguageHighlighterColors.INLINE_PARAMETER_HINT_HIGHLIGHTED)
 
     val commentKeys = arrayOf(comment)
     val keywordKeys = arrayOf(keyword)
     val emptyKeys = arrayOf<TextAttributesKey>()
     val badTokenKeys = arrayOf(bad)
     val numberKeys = arrayOf(number)
+    val previewNodeKeys = arrayOf(previewNode)
   }
 
   override fun getHighlightingLexer(): Lexer {

@@ -1,15 +1,5 @@
 package silentorb.imp.intellij.ui
 
-import com.intellij.ui.JBSplitter
-import silentorb.imp.core.mergeNamespaces
-import silentorb.imp.intellij.language.initialContext
-import silentorb.imp.parsing.general.englishText
-import silentorb.imp.parsing.general.formatError
-import silentorb.imp.parsing.parser.Dungeon
-import silentorb.imp.parsing.parser.parseText
-import javax.swing.JComponent
-import javax.swing.JPanel
-
 //data class SidePanel(
 //    val root: JComponent,
 //    val previewContainer: PreviewContainer,

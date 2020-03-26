@@ -3,8 +3,8 @@ import silentorb.mythic.generation.drawing.*
 import silentorb.mythic.math.*
 
 let background = noise
-    scale = 63
-    detail = 78
+    scale = 75
+    detail = 35
     variation = 1
     . colorize (RgbColor 33 216 66) (RgbColor 0 0 0)
 
@@ -14,9 +14,9 @@ let foreground = noise
     variation = 106
     . colorize (RgbColor 46 51 132) (RgbColor 0 0 0)
 
-let output = mask foreground background (checkers 3 3)
+let output = mask foreground background (checkers 5 3)
     . distort
-        scale = 45
+        scale = 31
         detail = 28
         variation = 18
         strength = 8

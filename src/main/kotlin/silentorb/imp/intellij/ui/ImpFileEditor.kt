@@ -15,7 +15,7 @@ import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.Disposer
 import com.intellij.openapi.util.Key
 import com.intellij.openapi.vfs.VirtualFile
-import silentorb.imp.intellij.language.initialContext
+import silentorb.imp.intellij.services.initialContext
 import silentorb.imp.parsing.parser.Dungeon
 import java.beans.PropertyChangeListener
 import javax.swing.JComponent

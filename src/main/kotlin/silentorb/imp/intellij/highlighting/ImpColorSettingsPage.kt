@@ -34,7 +34,7 @@ class ImpColorSettingsPage : ColorSettingsPage {
   }
 
   override fun getDisplayName(): String {
-    return "Simple"
+    return "Imp"
   }
 
   companion object {

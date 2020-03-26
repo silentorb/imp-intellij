@@ -14,4 +14,8 @@ class ImpFile(viewProvider: FileViewProvider) : PsiFileBase(viewProvider, ImpLan
   override fun toString(): String {
     return "Imp File"
   }
+
+  init {
+    val k = 0
+  }
 }

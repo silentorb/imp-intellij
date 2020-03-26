@@ -13,7 +13,7 @@ import silentorb.imp.core.PathKey
 import silentorb.imp.core.getGraphOutputNode
 import silentorb.imp.execution.arrangeGraphSequence
 import silentorb.imp.execution.execute
-import silentorb.imp.intellij.language.initialFunctions
+import silentorb.imp.intellij.services.initialFunctions
 import silentorb.imp.intellij.messaging.ToggleTilingNotifier
 import silentorb.imp.intellij.messaging.toggleTilingTopic
 import silentorb.mythic.imaging.*
