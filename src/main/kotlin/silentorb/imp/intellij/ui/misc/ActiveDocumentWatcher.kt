@@ -1,4 +1,4 @@
-package silentorb.imp.intellij.ui
+package silentorb.imp.intellij.ui.misc
 
 import com.intellij.ide.DataManager
 import com.intellij.openapi.Disposable

@@ -1,12 +1,11 @@
 package silentorb.imp.intellij.actions
 
-import com.intellij.openapi.actionSystem.AnAction
 import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.actionSystem.ToggleAction
 import com.intellij.openapi.application.ApplicationManager
 import silentorb.imp.intellij.messaging.toggleTilingTopic
-import silentorb.imp.intellij.ui.getTiling
-import silentorb.imp.intellij.ui.setTiling
+import silentorb.imp.intellij.ui.texturing.getTiling
+import silentorb.imp.intellij.ui.texturing.setTiling
 
 class ToggleTilingAction : ToggleAction() {
 

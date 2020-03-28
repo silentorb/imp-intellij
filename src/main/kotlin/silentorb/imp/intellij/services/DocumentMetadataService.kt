@@ -11,8 +11,6 @@ import com.intellij.psi.PsiDocumentManager
 import com.intellij.util.xmlb.XmlSerializerUtil
 import silentorb.imp.core.Id
 import silentorb.imp.intellij.messaging.nodePreviewTopic
-import silentorb.imp.intellij.ui.changePsiValue
-import silentorb.imp.intellij.ui.findNode
 
 data class DocumentMetadata(
     var previewNodes: MutableMap<String, Id> = mutableMapOf()

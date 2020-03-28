@@ -3,8 +3,6 @@ package silentorb.imp.intellij.services
 import com.intellij.openapi.components.Service
 import com.intellij.openapi.components.ServiceManager
 import com.intellij.openapi.editor.Document
-import com.intellij.openapi.project.Project
-import com.intellij.psi.PsiDocumentManager
 import com.intellij.psi.PsiFile
 import silentorb.imp.core.*
 import silentorb.imp.execution.FunctionImplementationMap
@@ -13,7 +11,8 @@ import silentorb.imp.library.implementation.standard.standardLibrary
 import silentorb.imp.parsing.general.PartitionedResponse
 import silentorb.imp.parsing.parser.Dungeon
 import silentorb.imp.parsing.parser.parseText
-import silentorb.mythic.imaging.texturingLibrary
+import silentorb.mythic.imaging.substance.substanceLibrary
+import silentorb.mythic.imaging.texturing.texturingLibrary
 import java.util.*
 
 val scaleLengthKey = PathKey("silentorb.mythic.injected", "scaleLength")
@@ -38,7 +37,8 @@ class ImpLanguageService {
   init {
     val library = combineLibraries(
         standardLibrary(),
-        texturingLibrary()
+        texturingLibrary(),
+        substanceLibrary()
     )
     context = listOf(
         library.namespace.copy(

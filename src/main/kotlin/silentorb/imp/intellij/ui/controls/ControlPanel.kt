@@ -1,4 +1,4 @@
-package silentorb.imp.intellij.ui
+package silentorb.imp.intellij.ui.controls
 
 import com.intellij.openapi.fileEditor.FileDocumentManager
 import com.intellij.openapi.fileEditor.FileEditorManager
@@ -9,10 +9,14 @@ import com.intellij.psi.PsiElement
 import com.intellij.ui.content.ContentManager
 import silentorb.imp.core.*
 import silentorb.imp.intellij.services.initialContext
+import silentorb.imp.intellij.ui.misc.ActiveDocumentWatcher
+import silentorb.imp.intellij.ui.misc.changePsiValue
+import silentorb.imp.intellij.ui.misc.findNodeEntry
+import silentorb.imp.intellij.ui.misc.getPsiElement
 import silentorb.imp.parsing.general.Range
 import silentorb.imp.parsing.parser.Dungeon
 import silentorb.imp.parsing.parser.parseText
-import silentorb.mythic.imaging.rgbColorKey
+import silentorb.mythic.imaging.texturing.rgbColorKey
 import java.awt.Dimension
 import javax.swing.*
 

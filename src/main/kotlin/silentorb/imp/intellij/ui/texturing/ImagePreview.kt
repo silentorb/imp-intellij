@@ -1,4 +1,4 @@
-package silentorb.imp.intellij.ui
+package silentorb.imp.intellij.ui.texturing
 
 import com.intellij.ide.util.PropertiesComponent
 import com.intellij.openapi.Disposable
@@ -7,18 +7,17 @@ import com.intellij.openapi.actionSystem.DefaultActionGroup
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.ui.SimpleToolWindowPanel
 import com.intellij.util.messages.MessageBusConnection
-import silentorb.imp.core.Graph
-import silentorb.imp.core.Id
-import silentorb.imp.core.PathKey
 import silentorb.imp.core.getGraphOutputNode
 import silentorb.imp.execution.OutputValues
-import silentorb.imp.execution.arrangeGraphSequence
-import silentorb.imp.execution.execute
 import silentorb.imp.execution.executeStep
 import silentorb.imp.intellij.services.initialFunctions
 import silentorb.imp.intellij.messaging.ToggleTilingNotifier
 import silentorb.imp.intellij.messaging.toggleTilingTopic
-import silentorb.mythic.imaging.*
+import silentorb.imp.intellij.ui.preview.NewPreviewProps
+import silentorb.imp.intellij.ui.preview.PreviewDisplay
+import silentorb.imp.intellij.ui.preview.PreviewState
+import silentorb.imp.intellij.ui.preview.isPreviewOutdated
+import silentorb.mythic.imaging.texturing.*
 import silentorb.mythic.spatial.Vector2i
 import java.awt.Color
 import java.awt.Dimension
@@ -34,21 +33,13 @@ import kotlin.concurrent.thread
 
 private val gridLock = ReentrantLock()
 
-data class ImagePreviewState(
-    val graph: Graph,
-    val node: Id?,
-    val steps: List<Id>,
-    val type: PathKey,
-    val timestamp: Long
-)
-
-class ImagePreviewPanel(var dimensions: Vector2i) : SimpleToolWindowPanel(true), Disposable {
+class ImagePreviewPanel(var dimensions: Vector2i) : JPanel(), Disposable {
   val grid = newImagePreviewChild(dimensions)
-  var state: ImagePreviewState? = null
   val images: MutableMap<Vector2i, BufferedImage> = mutableMapOf()
   var startedDrawing: Boolean = false
   val connection: MessageBusConnection
   val self = this
+  var state: PreviewState? = null
 
   init {
     val bus = ApplicationManager.getApplication().getMessageBus()
@@ -84,6 +75,16 @@ fun setTiling(value: Boolean) {
 
 fun newImageElement(image: Image): JComponent {
   return JLabel(ImageIcon(image))
+}
+
+fun tilingChanged(container: ImagePreviewPanel) {
+  initializeImagePreviewGrid(container.grid, container.dimensions)
+  val state = container.state
+  if (state != null) {
+    updateImagePreview(state, container)
+  }
+  container.grid.revalidate()
+  container.grid.repaint()
 }
 
 fun initializeImagePreviewGrid(grid: JPanel, dimensions: Vector2i) {
@@ -140,7 +141,8 @@ fun resizeImagePreview(container: ImagePreviewPanel, dimensions: Vector2i) {
   gridLock.unlock()
 }
 
-fun updateImagePreview(state: ImagePreviewState, container: ImagePreviewPanel) {
+fun updateImagePreview(state: PreviewState, container: ImagePreviewPanel) {
+  container.state = state
   val timestamp = state.timestamp
   val graph = state.graph
   val steps = state.steps
@@ -180,7 +182,7 @@ fun updateImagePreview(state: ImagePreviewState, container: ImagePreviewPanel) {
       if (value == null)
         break
 
-      val sampleWriter = if (type == rgbSamplerKey)
+      val sampleWriter = if (type == rgbSampler2dKey)
         newRgbSampleWriter(value as RgbSampler)
       else
         newFloatSampleWriter(value as FloatSampler)
@@ -207,35 +209,6 @@ fun updateImagePreview(state: ImagePreviewState, container: ImagePreviewPanel) {
   }
 }
 
-private val sourceLock = ReentrantLock()
-
-fun updateImagePreview(type: PathKey, graph: Graph, timestamp: Long, container: ImagePreviewPanel, node: Id?) {
-  val steps = arrangeGraphSequence(graph)
-  sourceLock.lock()
-  val state = ImagePreviewState(
-      type = type,
-      graph = graph,
-      node = node,
-      steps = steps,
-      timestamp = timestamp
-  )
-  container.state = state
-  sourceLock.unlock()
-  updateImagePreview(state, container)
-}
-
-fun tilingChanged(container: ImagePreviewPanel) {
-  initializeImagePreviewGrid(container.grid, container.dimensions)
-  sourceLock.lock()
-  val state = container.state
-  if (state != null) {
-    updateImagePreview(state, container)
-  }
-  container.grid.revalidate()
-  container.grid.repaint()
-  sourceLock.unlock()
-}
-
 fun resizeListener(container: ImagePreviewPanel) =
     object : ComponentListener {
       var previousWidth = container.width
@@ -252,29 +225,27 @@ fun resizeListener(container: ImagePreviewPanel) =
       override fun componentShown(e: ComponentEvent?) {}
     }
 
-fun newImagePreview(dimensions: Vector2i): PreviewDisplay {
+fun newImagePreview(props: NewPreviewProps): PreviewDisplay {
+  val dimensions = props.dimensions
 //  println("new ImagePreview ${dimensions.x} ${dimensions.y}")
   val container = ImagePreviewPanel(dimensions)
 //  container.layout = BoxLayout(container, BoxLayout.Y_AXIS)
   container.addComponentListener(resizeListener(container))
   container.background = Color.black
 
-  val gridWrapper = JPanel()
-  gridWrapper.add(container.grid)
+//  val gridWrapper = JPanel()
+  container.add(container.grid)
 
   val actionManager = ActionManager.getInstance()
   val actionGroup = DefaultActionGroup("ACTION_GROUP", false)
   actionGroup.add(ActionManager.getInstance().getAction("silentorb.imp.intellij.actions.ToggleTilingAction"))
   val actionToolbar = actionManager.createActionToolbar("ACTION_GROUP", actionGroup, true)
   actionToolbar.component.preferredSize = Dimension(0, 40)
-//  container.add(actionToolbar.component)
-//  container.add(gridWrapper)
-  container.setContent(gridWrapper)
-  container.toolbar = actionToolbar.component
   return PreviewDisplay(
-      component = container,
-      update = { type, graph, timestamp, node ->
-        updateImagePreview(type, graph, timestamp, container, node)
+      content = container,
+      toolbar = actionToolbar,
+      update = { state ->
+        updateImagePreview(state, container)
       }
   )
 }

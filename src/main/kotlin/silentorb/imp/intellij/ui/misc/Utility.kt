@@ -1,4 +1,4 @@
-package silentorb.imp.intellij.ui
+package silentorb.imp.intellij.ui.misc
 
 import com.intellij.openapi.command.WriteCommandAction
 import com.intellij.openapi.editor.Document
@@ -15,6 +15,7 @@ import silentorb.imp.core.Id
 import silentorb.imp.intellij.language.ImpLanguage
 import silentorb.imp.intellij.services.getImpLanguageService
 import silentorb.imp.intellij.services.initialContext
+import silentorb.imp.intellij.ui.controls.PsiElementWrapper
 import silentorb.imp.parsing.general.ParsingErrors
 import silentorb.imp.parsing.general.PartitionedResponse
 import silentorb.imp.parsing.general.isInRange

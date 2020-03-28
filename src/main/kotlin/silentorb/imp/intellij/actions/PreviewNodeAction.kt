@@ -5,9 +5,8 @@ import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.actionSystem.CommonDataKeys
 import com.intellij.openapi.editor.Editor
 import silentorb.imp.intellij.services.getDocumentMetadataService
-import silentorb.imp.intellij.ui.findNode
-import silentorb.imp.intellij.ui.findNodeEntry
-import silentorb.imp.intellij.ui.getDungeonAndErrors
+import silentorb.imp.intellij.ui.misc.findNode
+import silentorb.imp.intellij.ui.misc.getDungeonAndErrors
 
 class PreviewNodeAction : AnAction() {
   override fun actionPerformed(event: AnActionEvent) {

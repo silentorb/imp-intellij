@@ -1,4 +1,4 @@
-package silentorb.imp.intellij.ui
+package silentorb.imp.intellij.ui.controls
 
 import silentorb.imp.core.NumericTypeConstraint
 import javax.swing.JPanel

@@ -18,6 +18,8 @@ dependencies {
     implementation("silentorb.imp:libraries_standard")
     implementation("silentorb.imp:libraries_standard_implementation")
     implementation("silentorb.mythic:imaging")
+    implementation("silentorb.mythic:lookinglass")
+    implementation("silentorb.mythic:desktop")
 }
 
 // See https://github.com/JetBrains/gradle-intellij-plugin/

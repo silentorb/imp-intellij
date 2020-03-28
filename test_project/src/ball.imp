@@ -1,0 +1,3 @@
+import silentorb.mythic.substance.*
+
+let output = sphere 1.5

@@ -15,16 +15,14 @@
                   language="Imp" extensions="imp"/>
         <lang.parserDefinition language="Imp"
                                implementationClass="silentorb.imp.intellij.language.ImpParserDefinition"/>
-        <!--        <fileEditorProvider implementation="silentorb.imp.intellij.ui.ImpEditorProvider"/>-->
         <lang.syntaxHighlighterFactory language="Imp"
                                        implementationClass="silentorb.imp.intellij.highlighting.ImpSyntaxHighlighterFactory"/>
         <lang.commenter language="Imp" implementationClass="silentorb.imp.intellij.editing.ImpCommenter"/>
         <toolWindow id="Preview" icon="/icons/familiar-tool-window.png" anchor="right"
-                    factoryClass="silentorb.imp.intellij.ui.PreviewFactory"
-                    conditionClass="silentorb.imp.intellij.ui.ImpProjectCondition"
+                    factoryClass="silentorb.imp.intellij.ui.preview.PreviewFactory"
         />
         <toolWindow id="Controls" icon="/icons/familiar-tool-window.png" anchor="right"
-                    factoryClass="silentorb.imp.intellij.ui.ControlsFactory"
+                    factoryClass="silentorb.imp.intellij.ui.controls.ControlsFactory"
                     secondary="true"/>
         <annotator language="Imp" implementationClass="silentorb.imp.intellij.language.ImpAnnotator"/>
         <additionalTextAttributes scheme="Default" file="colorSchemes/Default.xml"/>

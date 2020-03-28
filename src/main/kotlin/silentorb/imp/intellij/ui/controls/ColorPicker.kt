@@ -1,4 +1,4 @@
-package silentorb.imp.intellij.ui
+package silentorb.imp.intellij.ui.controls
 
 import java.awt.Color
 import java.awt.Dimension
@@ -8,7 +8,6 @@ import javax.swing.BorderFactory
 import javax.swing.JColorChooser
 import javax.swing.JComponent
 import javax.swing.JPanel
-import kotlin.math.round
 
 fun newColorPicker(changePsiValue: ChangePsiValue, psiElements: List<PsiElementWrapper>, values: List<Any>): JComponent {
   val colorValues = values as List<Int>

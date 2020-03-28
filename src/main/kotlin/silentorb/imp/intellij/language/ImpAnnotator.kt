@@ -7,8 +7,8 @@ import com.intellij.psi.PsiElement
 import com.intellij.psi.util.elementType
 import silentorb.imp.intellij.highlighting.ImpSyntaxHighlighter
 import silentorb.imp.intellij.services.getDocumentMetadataService
-import silentorb.imp.intellij.ui.findNode
-import silentorb.imp.intellij.ui.getDungeonAndErrors
+import silentorb.imp.intellij.ui.misc.findNode
+import silentorb.imp.intellij.ui.misc.getDungeonAndErrors
 import silentorb.imp.parsing.lexer.Rune
 
 class ImpAnnotator : Annotator {
