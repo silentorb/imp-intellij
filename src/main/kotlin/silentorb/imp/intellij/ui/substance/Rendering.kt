@@ -2,17 +2,9 @@ package silentorb.imp.intellij.ui.substance
 
 import org.lwjgl.BufferUtils
 import org.lwjgl.opengl.GL11
-import silentorb.imp.core.Graph
-import silentorb.imp.core.Id
-import silentorb.imp.core.getGraphOutputNode
-import silentorb.imp.execution.FunctionImplementationMap
-import silentorb.imp.execution.execute
 import silentorb.mythic.desktop.createHeadlessWindow
 import silentorb.mythic.desktop.initializeDesktopPlatform
 import silentorb.mythic.glowing.*
-import silentorb.mythic.imaging.substance.Sampler3dFloat
-import silentorb.mythic.imaging.substance.marching.marchingCubes
-import silentorb.mythic.imaging.substance.voxelize
 import silentorb.mythic.imaging.texturing.Bitmap
 import silentorb.mythic.imaging.texturing.bitmapToBufferedImage
 import silentorb.mythic.lookinglass.*
@@ -50,11 +42,11 @@ fun newMesh(vertices: FloatArray, vertexSchema: VertexSchema): ModelMesh {
               mesh = GeneralMesh(
                   vertexSchema = vertexSchema,
                   vertexBuffer = newVertexBuffer(vertexSchema).load(createFloatBuffer(vertices)),
-                  count = vertices.size
+                  count = vertices.size / 6
               ),
               material = Material(
                   color = Vector4(1f, 0f, 0f, 1f),
-                  shading = false
+                  shading = true
               )
           )
       )
@@ -82,11 +74,11 @@ fun createScene(cameraState: CameraState): GameScene {
               Light(
                   type = LightType.point,
                   color = Vector4(1f),
-                  offset = Vector3(0f, 1f, 10f),
+                  offset = Vector3(0f, 5f, 10f),
                   range = 20f
               )
           ),
-          lightingConfig = LightingConfig(ambient = 0.1f)
+          lightingConfig = LightingConfig(ambient = 0.2f)
       ),
       opaqueElementGroups = listOf(
           ElementGroup(
@@ -105,25 +97,10 @@ fun createScene(cameraState: CameraState): GameScene {
   )
 }
 
-fun generateMesh(functions: FunctionImplementationMap, graph: Graph, node: Id?): FloatArray? {
-  val output = node ?: getGraphOutputNode(graph)
-  val values = execute(functions, graph)
-  val value = values[output]
-  return if (value == null)
-    null
-  else {
-    val voxelsPerUnit = 10
-    val unitDimensions = Vector3i(4, 4, 4)
-    val voxelDimensions = unitDimensions * voxelsPerUnit
-    val voxels = voxelize(value as Sampler3dFloat, voxelDimensions, 1, 1f / voxelsPerUnit.toFloat())
-    marchingCubes(voxels, voxelDimensions, (unitDimensions - unitDimensions / 2).toVector3(), 0.5f)
-  }
-}
-
 fun renderMesh(vertices: FloatArray, dimensions: Vector2i, cameraState: CameraState): BufferedImage {
   val scene = createScene(cameraState)
   val initialRenderer = rendererSingleton()
-  val mesh = newMesh(vertices, initialRenderer.vertexSchemas.flat)
+  val mesh = newMesh(vertices, initialRenderer.vertexSchemas.shaded)
   try {
     val renderer = initialRenderer
         .copy(

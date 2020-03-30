@@ -18,13 +18,13 @@ fun initializeCameraUi(component: JComponent, getState: () -> CameraState, setSt
     override fun mouseDragged(event: MouseEvent?) {
       super.mouseDragged(event)
       if (event != null) {
-        println("dragged ${event.x} ${event.y}")
+//        println("dragged ${event.x} ${event.y}")
         val localLastX = lastX
         if (localLastX != null) {
           val offsetX = event.x - localLastX
           val state = getState()
           setState(state.copy(
-              yaw = radial(state.yaw + offsetX.toFloat() * 0.05f)
+              yaw = radial(state.yaw - offsetX.toFloat() * 0.05f)
           ))
         }
         lastX = event.x
