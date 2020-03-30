@@ -13,6 +13,7 @@ import silentorb.imp.execution.executeStep
 import silentorb.imp.intellij.services.initialFunctions
 import silentorb.imp.intellij.messaging.ToggleTilingNotifier
 import silentorb.imp.intellij.messaging.toggleTilingTopic
+import silentorb.imp.intellij.ui.misc.resizeListener
 import silentorb.imp.intellij.ui.preview.NewPreviewProps
 import silentorb.imp.intellij.ui.preview.PreviewDisplay
 import silentorb.imp.intellij.ui.preview.PreviewState
@@ -30,10 +31,9 @@ import java.util.concurrent.locks.ReentrantLock
 import javax.swing.*
 import kotlin.concurrent.thread
 
-
 private val gridLock = ReentrantLock()
 
-class ImagePreviewPanel(var dimensions: Vector2i) : JPanel(), Disposable {
+class ImagePreviewPanel(var dimensions: Vector2i) : SimpleToolWindowPanel(true), Disposable {
   val grid = newImagePreviewChild(dimensions)
   val images: MutableMap<Vector2i, BufferedImage> = mutableMapOf()
   var startedDrawing: Boolean = false
@@ -209,28 +209,15 @@ fun updateImagePreview(state: PreviewState, container: ImagePreviewPanel) {
   }
 }
 
-fun resizeListener(container: ImagePreviewPanel) =
-    object : ComponentListener {
-      var previousWidth = container.width
-      override fun componentResized(event: ComponentEvent?) {
-        if (container.startedDrawing && container.width != previousWidth) {
-//          println("Changed width $previousWidth -> ${container.width}")
-          previousWidth = container.width
-          resizeImagePreview(container, Vector2i(container.width))
-        }
-      }
-
-      override fun componentMoved(e: ComponentEvent?) {}
-      override fun componentHidden(e: ComponentEvent?) {}
-      override fun componentShown(e: ComponentEvent?) {}
-    }
-
 fun newImagePreview(props: NewPreviewProps): PreviewDisplay {
   val dimensions = props.dimensions
 //  println("new ImagePreview ${dimensions.x} ${dimensions.y}")
   val container = ImagePreviewPanel(dimensions)
-//  container.layout = BoxLayout(container, BoxLayout.Y_AXIS)
-  container.addComponentListener(resizeListener(container))
+  container.addComponentListener(resizeListener(container) {
+    if (container.startedDrawing) {
+      resizeImagePreview(container, Vector2i(container.width))
+    }
+  })
   container.background = Color.black
 
 //  val gridWrapper = JPanel()
@@ -241,6 +228,10 @@ fun newImagePreview(props: NewPreviewProps): PreviewDisplay {
   actionGroup.add(ActionManager.getInstance().getAction("silentorb.imp.intellij.actions.ToggleTilingAction"))
   val actionToolbar = actionManager.createActionToolbar("ACTION_GROUP", actionGroup, true)
   actionToolbar.component.preferredSize = Dimension(0, 40)
+
+  container.setContent(container.grid)
+  container.toolbar = actionToolbar.component
+
   return PreviewDisplay(
       content = container,
       toolbar = actionToolbar,

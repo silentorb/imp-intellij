@@ -11,10 +11,13 @@ import silentorb.imp.execution.FunctionImplementationMap
 import silentorb.imp.execution.execute
 import silentorb.imp.intellij.services.initialFunctions
 import silentorb.imp.intellij.ui.misc.replacePanelContents
+import silentorb.imp.intellij.ui.misc.resizeListener
 import silentorb.imp.intellij.ui.preview.NewPreviewProps
 import silentorb.imp.intellij.ui.preview.PreviewDisplay
 import silentorb.imp.intellij.ui.preview.PreviewState
+import silentorb.imp.intellij.ui.texturing.ImagePreviewPanel
 import silentorb.imp.intellij.ui.texturing.newImageElement
+import silentorb.imp.intellij.ui.texturing.resizeImagePreview
 import silentorb.mythic.desktop.createHeadlessWindow
 import silentorb.mythic.desktop.initializeDesktopPlatform
 import silentorb.mythic.glowing.*
@@ -28,163 +31,111 @@ import silentorb.mythic.lookinglass.meshes.Primitive
 import silentorb.mythic.platforming.WindowInfo
 import silentorb.mythic.scenery.*
 import silentorb.mythic.spatial.*
+import java.awt.Color
+import java.awt.event.ComponentEvent
+import java.awt.event.ComponentListener
+import java.awt.event.MouseEvent
 import java.awt.image.BufferedImage
+import javax.swing.JComponent
+import javax.swing.JPanel
 import javax.swing.SwingUtilities
+import javax.swing.Timer
+import javax.swing.event.MouseInputAdapter
+
+data class CameraState(
+    val yaw: Float,
+    val pitch: Float,
+    val distance: Float
+)
+
+fun defaultCameraState() =
+    CameraState(
+        yaw = 0f,
+        pitch = 0f,
+        distance = 5f
+    )
+
+fun renderSubstance(functions: FunctionImplementationMap, graph: Graph, node: Id?, dimensions: Vector2i, cameraState: CameraState): BufferedImage? {
+  val vertices = generateMesh(functions, graph, node)
+  return if (vertices == null)
+    null
+  else
+    renderMesh(vertices, dimensions, cameraState)
+}
 
 class SubstancePreviewPanel : SimpleToolWindowPanel(true), Disposable {
+  var cameraState: CameraState = defaultCameraState()
+  var previousState: CameraState = cameraState
+  var previewState: PreviewState? = null
+  var startedDrawing: Boolean = false
+  var vertices: FloatArray? = null
+  val updateTimer = Timer(33) { event ->
+    checkUpdate()
+  }
+
+  init {
+    initializeCameraUi(this, { cameraState }) { cameraState = it }
+    updateTimer.initialDelay = 500
+    updateTimer.start()
+  }
+
+  fun checkUpdate() {
+    if (cameraState != previousState) {
+      previousState = cameraState
+      updateMeshDisplay(this)
+    }
+  }
 
   override fun dispose() {
+    updateTimer.stop()
   }
 
 }
 
-var hiddenWindow: Long? = null
-
-fun newRenderer(): Renderer {
-  initializeDesktopPlatform()
-  hiddenWindow = createHeadlessWindow()
-
-  return emptyRenderer(
-      config = DisplayConfig(
-
-      )
-  )
-      .copy(
-          offscreenBuffers = listOf(
-              prepareScreenFrameBuffer(1024, 1024, true)
-          )
-      )
-}
-
-const val dynamicMeshId = "dynamic"
-
-fun newMesh(vertices: FloatArray, vertexSchema: VertexSchema): ModelMesh {
-  return ModelMesh(
-      id = dynamicMeshId,
-      primitives = listOf(
-          Primitive(
-              mesh = GeneralMesh(
-                  vertexSchema = vertexSchema,
-                  vertexBuffer = newVertexBuffer(vertexSchema).load(createFloatBuffer(vertices)),
-                  count = vertices.size
-              ),
-              material = Material(
-                  color = Vector4(1f, 0f, 0f, 1f),
-                  shading = false
-              )
-          )
-      )
-  )
-}
-
-private var staticRenderer: Renderer? = null
-fun rendererSingleton(): Renderer {
-  if (staticRenderer == null) {
-    staticRenderer = newRenderer()
-  }
-  return staticRenderer!!
-}
-
-fun createScene(): GameScene {
-  return GameScene(
-      main = Scene(
-          camera = Camera(
-              ProjectionType.orthographic,
-              Vector3(-5f, 0f, 0f),
-              Quaternion(),
-              45f
-          ),
-          lights = listOf(
-              Light(
-                  type = LightType.point,
-                  color = Vector4(1f),
-                  offset = Vector3(0f, 1f, 10f),
-                  range = 20f
-              )
-          ),
-          lightingConfig = LightingConfig(ambient = 0.1f)
-      ),
-      opaqueElementGroups = listOf(
-          ElementGroup(
-              meshes = listOf(
-                  MeshElement(
-                      id = 1L,
-                      mesh = dynamicMeshId,
-                      transform = Matrix.identity
-                  )
-              )
-          )
-      ),
-      transparentElementGroups = listOf(),
-      filters = listOf(),
-      background = listOf()
-  )
-}
-
-fun renderSubstance(functions: FunctionImplementationMap, graph: Graph, node: Id?, dimensions: Vector2i): BufferedImage? {
-  val output = node ?: getGraphOutputNode(graph)
-  val values = execute(functions, graph)
-  val value = values[output]
-  return if (value == null)
-    null
-  else {
-    val voxelsPerUnit = 10
-    val unitDimensions = Vector3i(2, 2, 2)
-    val voxelDimensions = unitDimensions * voxelsPerUnit
-    val voxels = voxelize(value as Sampler3dFloat, voxelDimensions, 1, 1f / voxelsPerUnit.toFloat())
-    val vertices = marchingCubes(voxels, voxelDimensions, unitDimensions.toVector3(), 0.5f)
-
-    val scene = createScene()
-    val initialRenderer = rendererSingleton()
-    val mesh = newMesh(vertices, initialRenderer.vertexSchemas.flat)
-    try {
-      val renderer = initialRenderer
-          .copy(
-              meshes = mapOf(
-                  dynamicMeshId to mesh
-              )
-          )
-      val windowInfo = WindowInfo(dimensions = dimensions)
-      renderContainer(renderer, windowInfo) {
-        val glow = renderer.glow
-        glow.state.clearColor = Vector4(1f, 1f, 0f, 1f)
-        val offscreenBuffer = renderer.offscreenBuffers.first()
-        val viewport = Vector4i(0, 0, dimensions.x, dimensions.y)
-        val sceneRenderer = createSceneRenderer(renderer, scene, viewport)
-        glow.state.setFrameBuffer(offscreenBuffer.framebuffer.id)
-        glow.state.viewport = Vector4i(0, 0, dimensions.x, dimensions.y)
-        glow.operations.clearScreen()
-        glow.state.cullFaces = false
-        renderElements(sceneRenderer, scene.opaqueElementGroups, scene.transparentElementGroups)
-        checkError("It worked")
-      }
-    } finally {
-      mesh.primitives.first().mesh.vertexBuffer.dispose()
-    }
-    val buffer = BufferUtils.createFloatBuffer(dimensions.x * dimensions.y * 3)
-    glReadPixels(0, 0, dimensions.x, dimensions.y, GL_RGB, GL_FLOAT, buffer)
-    bitmapToBufferedImage(Bitmap(buffer = buffer, channels = 3, dimensions = dimensions))
+fun updateMeshDisplay(vertices: FloatArray, dimensions: Vector2i, panel: SubstancePreviewPanel) {
+  val image = renderMesh(vertices, dimensions, panel.cameraState)
+  SwingUtilities.invokeLater {
+    panel.setContent(newImageElement(image))
+//    replacePanelContents(panel, newImageElement(image))
   }
 }
 
-fun updateSubstancePreview(state: PreviewState, panel: SubstancePreviewPanel) {
-  val dimensions = Vector2i(panel.width, panel.height)
+fun updateMeshDisplay(panel: SubstancePreviewPanel) {
+  val state = panel.previewState
+  val mesh = panel.vertices
+  if (state != null && mesh != null) {
+    val dimensions = Vector2i(panel.width, panel.height)
+    updateMeshDisplay( mesh, dimensions, panel)
+  }
+}
+
+fun updateSubstancePreview(state: PreviewState, panel: SubstancePreviewPanel, dimensions: Vector2i) {
+  panel.startedDrawing = true
   val functions = initialFunctions()
-  val image = renderSubstance(functions, state.graph, state.node, dimensions)
-  if (image != null) {
-    SwingUtilities.invokeLater {
-      replacePanelContents(panel, newImageElement(image))
-    }
+  val vertices = generateMesh(functions, state.graph, state.node)
+  panel.vertices = vertices
+  if (vertices != null) {
+    updateMeshDisplay(vertices, dimensions, panel)
   }
 }
 
 fun newSubstancePreview(props: NewPreviewProps): PreviewDisplay {
   val container = SubstancePreviewPanel()
+  container.background = Color.red
+  val placeholder = JPanel()
+  placeholder.background = Color.blue
+  container.setContent(placeholder)
+  container.addComponentListener(resizeListener(container) {
+    if (container.startedDrawing) {
+      updateMeshDisplay(container)
+    }
+  })
   return PreviewDisplay(
       content = container,
-      toolbar = null,
       update = { state ->
-        updateSubstancePreview(state, container)
+        container.previewState = state
+        val dimensions = Vector2i(container.width, container.height)
+        updateSubstancePreview(state, container, dimensions)
       }
   )
 }

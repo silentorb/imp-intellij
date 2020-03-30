@@ -37,7 +37,7 @@ import javax.swing.SwingUtilities
 
 data class PreviewDisplay(
     val content: JComponent,
-    val toolbar: ActionToolbar?,
+    val toolbar: ActionToolbar? = null,
     val update: (PreviewState) -> Unit
 )
 
@@ -49,87 +49,87 @@ data class PreviewState(
     val timestamp: Long
 )
 
-class PreviewContainer(project: Project, contentManager: ContentManager) : SimpleToolWindowPanel(true), Disposable {
-    var display: PreviewDisplay? = null
-    var previousDocument: Document? = null
-    val connection: MessageBusConnection
-    var lastDungeon: Dungeon? = null
-    var lastErrors: ParsingErrors = listOf()
-    var state: PreviewState? = null
-    val documentListener: DocumentListener = object : DocumentListener {
-        override fun documentChanged(event: DocumentEvent) {
-            val response = getDungeonAndErrors(project, event.document)
-            if (response != null) {
-                val (dungeon, errors) = response
-                update(dungeon, errors)
-            }
-        }
+class PreviewContainer(project: Project, contentManager: ContentManager) : JPanel(), Disposable {
+  var display: PreviewDisplay? = null
+  var previousDocument: Document? = null
+  val connection: MessageBusConnection
+  var lastDungeon: Dungeon? = null
+  var lastErrors: ParsingErrors = listOf()
+  var state: PreviewState? = null
+  val documentListener: DocumentListener = object : DocumentListener {
+    override fun documentChanged(event: DocumentEvent) {
+      val response = getDungeonAndErrors(project, event.document)
+      if (response != null) {
+        val (dungeon, errors) = response
+        update(dungeon, errors)
+      }
     }
-    val activeDocumentWatcher = ActiveDocumentWatcher(project, watchParsed(project) { dungeon, document, errors ->
-        if (document != previousDocument) {
-            if (previousDocument != null) {
-                previousDocument!!.removeDocumentListener(documentListener)
-            }
-            if (document != null) {
-                document.addDocumentListener(documentListener)
-            }
-            previousDocument = document
-            update(dungeon, errors)
-        }
+  }
+  val activeDocumentWatcher = ActiveDocumentWatcher(project, watchParsed(project) { dungeon, document, errors ->
+    if (document != previousDocument) {
+      if (previousDocument != null) {
+        previousDocument!!.removeDocumentListener(documentListener)
+      }
+      if (document != null) {
+        document.addDocumentListener(documentListener)
+      }
+      previousDocument = document
+      update(dungeon, errors)
+    }
 
 //    println("file change: ${file?.name ?: "none"}")
-    })
+  })
 
-    init {
-        activeDocumentWatcher.start(contentManager)
-//    layout = GridLayout(0, 1)
-        Disposer.register(contentManager, this)
+  init {
+    activeDocumentWatcher.start(contentManager)
+    layout = GridLayout(0, 1)
+    Disposer.register(contentManager, this)
 
-        val bus = ApplicationManager.getApplication().getMessageBus()
-        connection = bus.connect()
-        connection.subscribe(nodePreviewTopic, object : NodePreviewNotifier {
-            override fun handle(document: Document, node: Id?) {
-                if (document == previousDocument) {
-                    update(lastDungeon, lastErrors)
-                }
-            }
-        })
-    }
-
-    fun update(dungeon: Dungeon?, errors: ParsingErrors) {
-        lastDungeon = dungeon
-        lastErrors = errors
-        val documentMetadata = getDocumentMetadataService()
-        val document = previousDocument
-        val node = if (document != null)
-            documentMetadata.getPreviewNode(document)
-        else
-            null
-
-        update(this, dungeon, errors, node)
-    }
-
-    override fun dispose() {
-        val document = previousDocument
-        if (document != null) {
-            document.removeDocumentListener(documentListener)
+    val bus = ApplicationManager.getApplication().getMessageBus()
+    connection = bus.connect()
+    connection.subscribe(nodePreviewTopic, object : NodePreviewNotifier {
+      override fun handle(document: Document, node: Id?) {
+        if (document == previousDocument) {
+          update(lastDungeon, lastErrors)
         }
-        connection.disconnect()
+      }
+    })
+  }
+
+  fun update(dungeon: Dungeon?, errors: ParsingErrors) {
+    lastDungeon = dungeon
+    lastErrors = errors
+    val documentMetadata = getDocumentMetadataService()
+    val document = previousDocument
+    val node = if (document != null)
+      documentMetadata.getPreviewNode(document)
+    else
+      null
+
+    update(this, dungeon, errors, node)
+  }
+
+  override fun dispose() {
+    val document = previousDocument
+    if (document != null) {
+      document.removeDocumentListener(documentListener)
     }
+    connection.disconnect()
+  }
 }
 
 fun messagePanel(message: String): JPanel {
-    val panel = JPanel()
-    panel.add(JLabel(message))
-    return panel
+  val panel = JPanel()
+  panel.add(JLabel(message))
+  return panel
 }
 
 fun newPreview(type: PathKey, dimensions: Vector2i): PreviewDisplay? {
-    val display = previewTypes().get(type)
-    return if (display != null)
-        display(NewPreviewProps(dimensions))
-    else
-        null
+  val display = previewTypes().get(type)
+  return if (display != null)
+    display(NewPreviewProps(dimensions))
+  else
+    null
 }
 
 private val sourceLock = ReentrantLock()
@@ -141,54 +141,54 @@ fun updatePreviewState(
     container: PreviewContainer,
     node: Id?
 ): PreviewState {
-    val steps = arrangeGraphSequence(graph)
-    sourceLock.lock()
-    val state = PreviewState(
-        type = type,
-        graph = graph,
-        node = node,
-        steps = steps,
-        timestamp = timestamp
-    )
-    container.state = state
-    sourceLock.unlock()
-    return state
+  val steps = arrangeGraphSequence(graph)
+  sourceLock.lock()
+  val state = PreviewState(
+      type = type,
+      graph = graph,
+      node = node,
+      steps = steps,
+      timestamp = timestamp
+  )
+  container.state = state
+  sourceLock.unlock()
+  return state
 }
 
 fun updatePreview(preview: PreviewContainer, graph: Graph, type: PathKey, timestamp: Long, node: Id?) {
-    if (type != preview.state?.type) {
-        val newDisplay = newPreview(type, Vector2i(preview.width))
-        if (newDisplay != null) {
-            preview.setContent(newDisplay.content)
-            preview.toolbar = newDisplay.toolbar?.component ?: JPanel()
-            val oldComponent = preview.display?.content
-            if (oldComponent is Disposable) {
-                Disposer.dispose(oldComponent)
-            }
-            preview.display = newDisplay
-            val component = newDisplay.content
-            if (component is Disposable) {
-                Disposer.register(preview, component)
-            }
-        } else {
-            val typeName = type.path + "." + type.name
-            preview.setContent(messagePanel("No preview for type of $typeName"))
-            preview.toolbar = JPanel()
-        }
+  if (type != preview.state?.type) {
+    val newDisplay = newPreview(type, Vector2i(preview.width))
+    if (newDisplay != null) {
+      replacePanelContents(preview, newDisplay.content)
+//      preview.setContent(newDisplay.content)
+//      preview.toolbar = newDisplay.toolbar?.component ?: JPanel()
+      val oldComponent = preview.display?.content
+      if (oldComponent is Disposable) {
+        Disposer.dispose(oldComponent)
+      }
+      preview.display = newDisplay
+      val component = newDisplay.content
+      if (component is Disposable) {
+        Disposer.register(preview, component)
+      }
+    } else {
+      val typeName = type.path + "." + type.name
+      replacePanelContents(preview, messagePanel("No preview for type of $typeName"))
+//      preview.setContent(messagePanel("No preview for type of $typeName"))
     }
-    val state = updatePreviewState(type, graph, timestamp, preview, node)
-    // The layout of new preview children isn't fully initialized until after this UI tick
+  }
+  val state = updatePreviewState(type, graph, timestamp, preview, node)
+  // The layout of new preview children isn't fully initialized until after this UI tick
+  SwingUtilities.invokeLater {
     SwingUtilities.invokeLater {
-        SwingUtilities.invokeLater {
-            val display = preview.display
-            if (display != null) {
-                if (display.content.width == 0) {
-                    throw Error("This shouldn't be happening!")
-                }
-                display.update(state)
-            }
+      val display = preview.display
+      if (display != null) {
+        if (display.content.width != 0) {
+          display.update(state)
         }
+      }
     }
+  }
 }
 
 private val timestampLock = ReentrantLock()
@@ -199,44 +199,44 @@ fun isPreviewOutdated(timestamp: Long) =
     timestamp < currentTimestamp
 
 fun trySetPreviewTimestamp(timestamp: Long): Boolean {
-    timestampLock.lock()
-    return if (timestamp > currentTimestamp) {
-        currentTimestamp = timestamp
-        timestampLock.unlock()
-        true
-    } else {
-        timestampLock.unlock()
-        false
-    }
+  timestampLock.lock()
+  return if (timestamp > currentTimestamp) {
+    currentTimestamp = timestamp
+    timestampLock.unlock()
+    true
+  } else {
+    timestampLock.unlock()
+    false
+  }
 }
 
 fun updatePreview(graph: Graph, preview: PreviewContainer, timestamp: Long, node: Id?) {
-    if (!trySetPreviewTimestamp(timestamp))
-        return
+  if (!trySetPreviewTimestamp(timestamp))
+    return
 
-    val output = node ?: getGraphOutputNode(graph)
-    val type = graph.types[output]
-    if (type != null) {
-        updatePreview(preview, graph, type, timestamp, node)
-    }
+  val output = node ?: getGraphOutputNode(graph)
+  val type = graph.types[output]
+  if (type != null) {
+    updatePreview(preview, graph, type, timestamp, node)
+  }
 }
 
 fun update(container: PreviewContainer, dungeon: Dungeon?, errors: ParsingErrors, node: Id?) {
-    if (dungeon == null) {
-        container.state = null
-        container.display = null
-        container.removeAll()
-        container.revalidate()
-        container.repaint()
-    } else if (errors.any()) {
-        container.state = null
-        container.display = null
-        val errorPanel = messagePanel(formatError(::englishText, errors.first()))
-        container.removeAll()
-        container.add(errorPanel)
-        container.revalidate()
-        container.repaint()
-    } else {
-        updatePreview(dungeon.graph, container, System.currentTimeMillis(), node)
-    }
+  if (dungeon == null) {
+    container.state = null
+    container.display = null
+    container.removeAll()
+    container.revalidate()
+    container.repaint()
+  } else if (errors.any()) {
+    container.state = null
+    container.display = null
+    val errorPanel = messagePanel(formatError(::englishText, errors.first()))
+    container.removeAll()
+    container.add(errorPanel)
+    container.revalidate()
+    container.repaint()
+  } else {
+    updatePreview(dungeon.graph, container, System.currentTimeMillis(), node)
+  }
 }

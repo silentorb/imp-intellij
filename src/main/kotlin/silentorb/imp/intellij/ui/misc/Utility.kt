@@ -22,6 +22,8 @@ import silentorb.imp.parsing.general.isInRange
 import silentorb.imp.parsing.parser.Dungeon
 import silentorb.imp.parsing.parser.NodeMap
 import silentorb.imp.parsing.parser.parseText
+import java.awt.event.ComponentEvent
+import java.awt.event.ComponentListener
 import javax.swing.JComponent
 import javax.swing.JPanel
 
@@ -114,3 +116,21 @@ fun findNodeEntry(nodeMap: NodeMap, offset: Int) =
 
 fun findNode(nodeMap: NodeMap, offset: Int): Id? =
     findNodeEntry(nodeMap, offset)?.key
+
+fun resizeListener(component: JComponent, onResize: () -> Unit) =
+    object : ComponentListener {
+      var previousWidth = component.width
+      var previousHeight = component.height
+      override fun componentResized(event: ComponentEvent?) {
+        if (component.width != previousWidth) {
+          println("Changed width $previousWidth -> ${component.width} height $previousHeight -> ${component.height}")
+          previousWidth = component.width
+          previousHeight = component.height
+          onResize()
+        }
+      }
+
+      override fun componentMoved(e: ComponentEvent?) {}
+      override fun componentHidden(e: ComponentEvent?) {}
+      override fun componentShown(e: ComponentEvent?) {}
+    }
