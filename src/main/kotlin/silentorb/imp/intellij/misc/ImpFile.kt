@@ -1,9 +1,8 @@
-package silentorb.imp.intellij.general
+package silentorb.imp.intellij.misc
 
 import com.intellij.extapi.psi.PsiFileBase
 import com.intellij.openapi.fileTypes.FileType
 import com.intellij.psi.FileViewProvider
-import silentorb.imp.intellij.general.ImpFileType
 import silentorb.imp.intellij.language.ImpLanguage
 
 class ImpFile(viewProvider: FileViewProvider) : PsiFileBase(viewProvider, ImpLanguage.INSTANCE) {

@@ -1,4 +1,4 @@
-package silentorb.imp.intellij.general
+package silentorb.imp.intellij.misc
 
 import com.intellij.openapi.fileTypes.LanguageFileType
 import silentorb.imp.intellij.language.ImpLanguage

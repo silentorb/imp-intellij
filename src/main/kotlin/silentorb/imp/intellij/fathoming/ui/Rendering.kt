@@ -1,4 +1,4 @@
-package silentorb.imp.intellij.ui.substance
+package silentorb.imp.intellij.fathoming.ui
 
 import org.lwjgl.BufferUtils
 import org.lwjgl.opengl.GL11
@@ -78,7 +78,7 @@ fun createScene(cameraState: CameraState): GameScene {
                   range = 20f
               )
           ),
-          lightingConfig = LightingConfig(ambient = 0.2f)
+          lightingConfig = LightingConfig(ambient = 0.3f)
       ),
       opaqueElementGroups = listOf(
           ElementGroup(

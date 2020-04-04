@@ -13,7 +13,7 @@ import com.intellij.psi.PsiFile
 import com.intellij.psi.TokenType
 import com.intellij.psi.tree.IFileElementType
 import com.intellij.psi.tree.TokenSet
-import silentorb.imp.intellij.general.ImpFile
+import silentorb.imp.intellij.misc.ImpFile
 
 class ImpParserDefinition : ParserDefinition {
   override fun createLexer(project: Project): Lexer {

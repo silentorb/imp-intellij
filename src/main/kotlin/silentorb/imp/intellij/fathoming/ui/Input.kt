@@ -1,4 +1,4 @@
-package silentorb.imp.intellij.ui.substance
+package silentorb.imp.intellij.fathoming.ui
 
 import silentorb.mythic.spatial.Pi
 import java.awt.event.MouseEvent

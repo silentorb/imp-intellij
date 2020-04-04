@@ -1,4 +1,4 @@
-package silentorb.imp.intellij.general
+package silentorb.imp.intellij.misc
 
 import com.intellij.openapi.util.IconLoader
 

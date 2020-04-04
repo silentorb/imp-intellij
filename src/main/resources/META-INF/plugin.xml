@@ -11,7 +11,7 @@
     <depends>com.intellij.modules.lang</depends>
 
     <extensions defaultExtensionNs="com.intellij">
-        <fileType name="Imp file" implementationClass="silentorb.imp.intellij.general.ImpFileType" fieldName="INSTANCE"
+        <fileType name="Imp file" implementationClass="silentorb.imp.intellij.misc.ImpFileType" fieldName="INSTANCE"
                   language="Imp" extensions="imp"/>
         <lang.parserDefinition language="Imp"
                                implementationClass="silentorb.imp.intellij.language.ImpParserDefinition"/>
@@ -39,5 +39,8 @@
         <action id="silentorb.imp.intellij.actions.ToggleTilingAction"
                 class="silentorb.imp.intellij.actions.ToggleTilingAction" text="Toggle Tiling"
                 description="Toggles texture display between single image and tiling multiple repetitions of the image"/>
+        <action id="silentorb.imp.intellij.substance.actions.SubstanceDisplayModeAction"
+                class="silentorb.imp.intellij.fathoming.actions.DisplayModeAction" text="Display Mode"
+                description="Determines how the 3D view is rendered"/>
     </actions>
 </idea-plugin>

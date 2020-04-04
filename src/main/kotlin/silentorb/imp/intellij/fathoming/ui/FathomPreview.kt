@@ -1,46 +1,27 @@
-package silentorb.imp.intellij.ui.substance
+package silentorb.imp.intellij.fathoming.ui
 
 import com.intellij.openapi.Disposable
+import com.intellij.openapi.actionSystem.ActionManager
+import com.intellij.openapi.actionSystem.DefaultActionGroup
 import com.intellij.openapi.ui.SimpleToolWindowPanel
-import org.lwjgl.BufferUtils
-import org.lwjgl.opengl.GL11.*
 import silentorb.imp.core.Graph
 import silentorb.imp.core.Id
-import silentorb.imp.core.getGraphOutputNode
 import silentorb.imp.execution.FunctionImplementationMap
-import silentorb.imp.execution.execute
+import silentorb.imp.intellij.fathoming.state.SubstanceDisplayMode
+import silentorb.imp.intellij.fathoming.actions.DisplayModeAction
 import silentorb.imp.intellij.services.initialFunctions
-import silentorb.imp.intellij.ui.misc.replacePanelContents
 import silentorb.imp.intellij.ui.misc.resizeListener
 import silentorb.imp.intellij.ui.preview.NewPreviewProps
 import silentorb.imp.intellij.ui.preview.PreviewDisplay
 import silentorb.imp.intellij.ui.preview.PreviewState
-import silentorb.imp.intellij.ui.texturing.ImagePreviewPanel
 import silentorb.imp.intellij.ui.texturing.newImageElement
-import silentorb.imp.intellij.ui.texturing.resizeImagePreview
-import silentorb.mythic.desktop.createHeadlessWindow
-import silentorb.mythic.desktop.initializeDesktopPlatform
-import silentorb.mythic.glowing.*
-import silentorb.mythic.imaging.substance.Sampler3dFloat
-import silentorb.mythic.imaging.substance.marching.marchingCubes
-import silentorb.mythic.imaging.substance.voxelize
-import silentorb.mythic.imaging.texturing.Bitmap
-import silentorb.mythic.imaging.texturing.bitmapToBufferedImage
-import silentorb.mythic.lookinglass.*
-import silentorb.mythic.lookinglass.meshes.Primitive
-import silentorb.mythic.platforming.WindowInfo
-import silentorb.mythic.scenery.*
-import silentorb.mythic.spatial.*
+import silentorb.mythic.spatial.Vector2i
 import java.awt.Color
-import java.awt.event.ComponentEvent
-import java.awt.event.ComponentListener
-import java.awt.event.MouseEvent
+import java.awt.Dimension
 import java.awt.image.BufferedImage
-import javax.swing.JComponent
 import javax.swing.JPanel
 import javax.swing.SwingUtilities
 import javax.swing.Timer
-import javax.swing.event.MouseInputAdapter
 
 data class CameraState(
     val yaw: Float,
@@ -63,12 +44,16 @@ fun renderSubstance(functions: FunctionImplementationMap, graph: Graph, node: Id
     renderMesh(vertices, dimensions, cameraState)
 }
 
+private const val displayModeConfigKey = "silentorb.imp.intellij.config.substance.display.mode"
+
 class SubstancePreviewPanel : SimpleToolWindowPanel(true), Disposable {
   var cameraState: CameraState = defaultCameraState()
   var previousState: CameraState = cameraState
   var previewState: PreviewState? = null
   var startedDrawing: Boolean = false
   var vertices: FloatArray? = null
+  var displayMode: SubstanceDisplayMode =
+//  val displayMode = newPersistentMutableEnum(displayModeConfigKey, SubstanceDisplayMode.shaded) { }
   val updateTimer = Timer(33) { event ->
     checkUpdate()
   }
@@ -105,18 +90,18 @@ fun updateMeshDisplay(panel: SubstancePreviewPanel) {
   val mesh = panel.vertices
   if (state != null && mesh != null) {
     val dimensions = Vector2i(panel.width, panel.height)
-    updateMeshDisplay( mesh, dimensions, panel)
+    updateMeshDisplay(mesh, dimensions, panel)
   }
 }
 
 fun updateSubstancePreview(state: PreviewState, panel: SubstancePreviewPanel, dimensions: Vector2i) {
   panel.startedDrawing = true
   val functions = initialFunctions()
-  val vertices = generateMesh(functions, state.graph, state.node)
-  panel.vertices = vertices
-  if (vertices != null) {
-    updateMeshDisplay(vertices, dimensions, panel)
-  }
+//  val vertices = generateMesh(functions, state.graph, state.node)
+//  panel.vertices = vertices
+//  if (vertices != null) {
+//    updateMeshDisplay(vertices, dimensions, panel)
+//  }
 }
 
 fun newSubstancePreview(props: NewPreviewProps): PreviewDisplay {
@@ -130,6 +115,16 @@ fun newSubstancePreview(props: NewPreviewProps): PreviewDisplay {
       updateMeshDisplay(container)
     }
   })
+
+  val actionManager = ActionManager.getInstance()
+  val actionGroup = DefaultActionGroup("ACTION_GROUP", false)
+  val displayModeAction = DisplayModeAction()
+  displayModeAction.state = container.displayMode
+  actionGroup.add(displayModeAction)
+  val actionToolbar = actionManager.createActionToolbar("ACTION_GROUP", actionGroup, true)
+  actionToolbar.component.preferredSize = Dimension(0, 40)
+  container.toolbar = actionToolbar.component
+
   return PreviewDisplay(
       content = container,
       update = { state ->

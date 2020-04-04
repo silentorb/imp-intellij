@@ -1,8 +1,8 @@
 import org.lwjgl.glfw.GLFW
 import silentorb.imp.intellij.services.ImpLanguageService
-import silentorb.imp.intellij.ui.substance.defaultCameraState
-import silentorb.imp.intellij.ui.substance.hiddenWindow
-import silentorb.imp.intellij.ui.substance.renderSubstance
+import silentorb.imp.intellij.fathoming.ui.defaultCameraState
+import silentorb.imp.intellij.fathoming.ui.hiddenWindow
+import silentorb.imp.intellij.fathoming.ui.renderSubstance
 import silentorb.imp.parsing.parser.parseText
 import silentorb.mythic.spatial.Vector2i
 

@@ -11,7 +11,7 @@ import silentorb.imp.library.implementation.standard.standardLibrary
 import silentorb.imp.parsing.general.PartitionedResponse
 import silentorb.imp.parsing.parser.Dungeon
 import silentorb.imp.parsing.parser.parseText
-import silentorb.mythic.imaging.substance.substanceLibrary
+import silentorb.mythic.imaging.fathoming.substanceLibrary
 import silentorb.mythic.imaging.texturing.texturingLibrary
 import java.util.*
 

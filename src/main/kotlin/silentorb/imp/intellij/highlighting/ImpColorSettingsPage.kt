@@ -5,7 +5,7 @@ import com.intellij.openapi.fileTypes.SyntaxHighlighter
 import com.intellij.openapi.options.colors.AttributesDescriptor
 import com.intellij.openapi.options.colors.ColorDescriptor
 import com.intellij.openapi.options.colors.ColorSettingsPage
-import silentorb.imp.intellij.general.ImpIcons
+import silentorb.imp.intellij.misc.ImpIcons
 import javax.swing.Icon
 
 class ImpColorSettingsPage : ColorSettingsPage {
