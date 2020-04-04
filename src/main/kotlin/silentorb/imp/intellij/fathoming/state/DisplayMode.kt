@@ -1,15 +1,23 @@
 package silentorb.imp.intellij.fathoming.state
 
-enum class SubstanceDisplayMode {
-    shaded,
-    wireframe
+import silentorb.imp.intellij.common.getPersistentEnumValue
+import silentorb.imp.intellij.common.setPersistentEnumValue
+
+enum class DisplayMode {
+  shaded,
+  wireframe
 }
 
-fun substanceDisplayModeTitles() =
+fun displayModeTitles() =
     mapOf(
-        SubstanceDisplayMode.shaded to "Shaded",
-        SubstanceDisplayMode.wireframe to "Wireframe"
+        DisplayMode.shaded to "Shaded",
+        DisplayMode.wireframe to "Wireframe"
     )
 
-fun substanceDisplayModeTitle(value: SubstanceDisplayMode) =
-    substanceDisplayModeTitles()[value]!!
+fun displayModeTitle(value: DisplayMode) =
+    displayModeTitles()[value]!!
+
+private const val displayModeConfigKey = "silentorb.imp.intellij.config.substance.display.mode"
+
+fun getDisplayMode() = getPersistentEnumValue(displayModeConfigKey, DisplayMode.shaded)
+val setDisplayMode = setPersistentEnumValue<DisplayMode>(displayModeConfigKey)

@@ -5,11 +5,14 @@ import silentorb.imp.core.Id
 import silentorb.imp.core.getGraphOutputNode
 import silentorb.imp.execution.FunctionImplementationMap
 import silentorb.imp.execution.execute
+import silentorb.mythic.imaging.fathoming.DistanceFunction
 import silentorb.mythic.imaging.fathoming.Sampler3dFloat
+import silentorb.mythic.imaging.fathoming.surfacing.*
 import silentorb.mythic.imaging.fathoming.surfacing.old.*
 import silentorb.mythic.imaging.fathoming.surfacing.old.marching.marchingCubes
 import silentorb.mythic.spatial.Vector3
 import silentorb.mythic.spatial.Vector3i
+import silentorb.mythic.spatial.toList
 import silentorb.mythic.spatial.toVector3
 
 fun simplify(vertices: FloatArray): FloatArray {
@@ -57,18 +60,36 @@ fun simplify(vertices: FloatArray): FloatArray {
       .toFloatArray()
 }
 
-fun generateMesh(functions: FunctionImplementationMap, graph: Graph, node: Id?): FloatArray? {
+fun executeGraph(functions: FunctionImplementationMap, graph: Graph, node: Id?): Any? {
   val output = node ?: getGraphOutputNode(graph)
   val values = execute(functions, graph)
-  val value = values[output]
-  return if (value == null)
-    null
-  else {
-    val voxelsPerUnit = 10
-    val unitDimensions = Vector3i(5)
-    val voxelDimensions = unitDimensions * voxelsPerUnit
-    val voxels = voxelize(value as Sampler3dFloat, voxelDimensions, 1, 1f / voxelsPerUnit.toFloat())
-    val vertices = marchingCubes(voxels, voxelDimensions, (unitDimensions - unitDimensions / 2).toVector3(), 0.5f)
-    simplify(vertices)
-  }
+  return values[output]
+}
+
+fun generateShadedMesh(value: Sampler3dFloat): FloatArray {
+  val voxelsPerUnit = 10
+  val unitDimensions = Vector3i(5)
+  val voxelDimensions = unitDimensions * voxelsPerUnit
+  val voxels = voxelize(value, voxelDimensions, 1, 1f / voxelsPerUnit.toFloat())
+  return marchingCubes(voxels, voxelDimensions, (unitDimensions - unitDimensions / 2).toVector3(), 0.5f)
+}
+
+fun generateWireframeMesh(getDistance: DistanceFunction): FloatArray {
+  val config = SurfacingConfig(
+      getDistance = getDistance,
+      tolerance = 0.01f,
+      cellSize = 1f,
+      subCells = 4
+  )
+
+  val bounds = getSceneGridBounds(getDistance, config.cellSize)
+      .pad(1)
+
+  val traceCell = traceCellEdges(config, bounds)
+  val cellCount = getBoundsCellCount(bounds)
+  val edges = (0 until cellCount).flatMap(traceCell)
+  return edges
+      .flatMap(::vertexList)
+      .flatMap(::toList)
+      .toFloatArray()
 }

@@ -7,14 +7,17 @@ import com.intellij.openapi.ui.SimpleToolWindowPanel
 import silentorb.imp.core.Graph
 import silentorb.imp.core.Id
 import silentorb.imp.execution.FunctionImplementationMap
-import silentorb.imp.intellij.fathoming.state.SubstanceDisplayMode
 import silentorb.imp.intellij.fathoming.actions.DisplayModeAction
+import silentorb.imp.intellij.fathoming.state.DisplayMode
+import silentorb.imp.intellij.fathoming.state.getDisplayMode
 import silentorb.imp.intellij.services.initialFunctions
 import silentorb.imp.intellij.ui.misc.resizeListener
 import silentorb.imp.intellij.ui.preview.NewPreviewProps
 import silentorb.imp.intellij.ui.preview.PreviewDisplay
 import silentorb.imp.intellij.ui.preview.PreviewState
 import silentorb.imp.intellij.ui.texturing.newImageElement
+import silentorb.mythic.imaging.fathoming.DistanceFunction
+import silentorb.mythic.imaging.fathoming.Sampler3dFloat
 import silentorb.mythic.spatial.Vector2i
 import java.awt.Color
 import java.awt.Dimension
@@ -37,14 +40,10 @@ fun defaultCameraState() =
     )
 
 fun renderSubstance(functions: FunctionImplementationMap, graph: Graph, node: Id?, dimensions: Vector2i, cameraState: CameraState): BufferedImage? {
-  val vertices = generateMesh(functions, graph, node)
-  return if (vertices == null)
-    null
-  else
-    renderMesh(vertices, dimensions, cameraState)
+  val value = executeGraph(functions, graph, node)!!
+  val vertices = generateShadedMesh(value as Sampler3dFloat)
+  return renderMesh(vertices, dimensions, cameraState)
 }
-
-private const val displayModeConfigKey = "silentorb.imp.intellij.config.substance.display.mode"
 
 class SubstancePreviewPanel : SimpleToolWindowPanel(true), Disposable {
   var cameraState: CameraState = defaultCameraState()
@@ -52,8 +51,7 @@ class SubstancePreviewPanel : SimpleToolWindowPanel(true), Disposable {
   var previewState: PreviewState? = null
   var startedDrawing: Boolean = false
   var vertices: FloatArray? = null
-  var displayMode: SubstanceDisplayMode =
-//  val displayMode = newPersistentMutableEnum(displayModeConfigKey, SubstanceDisplayMode.shaded) { }
+  var previousDisplayMode = getDisplayMode()
   val updateTimer = Timer(33) { event ->
     checkUpdate()
   }
@@ -64,8 +62,22 @@ class SubstancePreviewPanel : SimpleToolWindowPanel(true), Disposable {
     updateTimer.start()
   }
 
+  fun rebuildPreview() {
+    val state = previewState
+    if (state != null) {
+      rebuildPreview(state, this)
+
+      // TODO: This should eventually be handled elsewhere once surfacing is moved to a separate thread
+      updateMeshDisplay(this)
+    }
+  }
+
   fun checkUpdate() {
-    if (cameraState != previousState) {
+    val currentDisplayMode = getDisplayMode()
+    if (currentDisplayMode != previousDisplayMode) {
+      previousDisplayMode = currentDisplayMode
+      rebuildPreview()
+    } else if (cameraState != previousState) {
       previousState = cameraState
       updateMeshDisplay(this)
     }
@@ -94,14 +106,20 @@ fun updateMeshDisplay(panel: SubstancePreviewPanel) {
   }
 }
 
-fun updateSubstancePreview(state: PreviewState, panel: SubstancePreviewPanel, dimensions: Vector2i) {
+fun rebuildPreview(state: PreviewState, panel: SubstancePreviewPanel) {
+  val dimensions = Vector2i(panel.width, panel.height)
   panel.startedDrawing = true
   val functions = initialFunctions()
-//  val vertices = generateMesh(functions, state.graph, state.node)
-//  panel.vertices = vertices
-//  if (vertices != null) {
-//    updateMeshDisplay(vertices, dimensions, panel)
-//  }
+  val value = executeGraph(functions, state.graph, state.node)
+  if (value != null) {
+    val vertices = if (getDisplayMode() == DisplayMode.shaded)
+      generateShadedMesh(value as Sampler3dFloat)
+    else
+      generateWireframeMesh(value as DistanceFunction)
+
+    panel.vertices = vertices
+    updateMeshDisplay(vertices, dimensions, panel)
+  }
 }
 
 fun newSubstancePreview(props: NewPreviewProps): PreviewDisplay {
@@ -118,9 +136,7 @@ fun newSubstancePreview(props: NewPreviewProps): PreviewDisplay {
 
   val actionManager = ActionManager.getInstance()
   val actionGroup = DefaultActionGroup("ACTION_GROUP", false)
-  val displayModeAction = DisplayModeAction()
-  displayModeAction.state = container.displayMode
-  actionGroup.add(displayModeAction)
+  actionGroup.add(DisplayModeAction())
   val actionToolbar = actionManager.createActionToolbar("ACTION_GROUP", actionGroup, true)
   actionToolbar.component.preferredSize = Dimension(0, 40)
   container.toolbar = actionToolbar.component
@@ -129,8 +145,7 @@ fun newSubstancePreview(props: NewPreviewProps): PreviewDisplay {
       content = container,
       update = { state ->
         container.previewState = state
-        val dimensions = Vector2i(container.width, container.height)
-        updateSubstancePreview(state, container, dimensions)
+        rebuildPreview(state, container)
       }
   )
 }
