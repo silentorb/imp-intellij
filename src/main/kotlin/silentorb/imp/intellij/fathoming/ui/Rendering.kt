@@ -2,6 +2,8 @@ package silentorb.imp.intellij.fathoming.ui
 
 import org.lwjgl.BufferUtils
 import org.lwjgl.opengl.GL11
+import silentorb.imp.intellij.fathoming.state.DisplayMode
+import silentorb.imp.intellij.fathoming.state.getDisplayMode
 import silentorb.mythic.desktop.createHeadlessWindow
 import silentorb.mythic.desktop.initializeDesktopPlatform
 import silentorb.mythic.glowing.*
@@ -9,6 +11,7 @@ import silentorb.mythic.imaging.texturing.Bitmap
 import silentorb.mythic.imaging.texturing.bitmapToBufferedImage
 import silentorb.mythic.lookinglass.*
 import silentorb.mythic.lookinglass.meshes.Primitive
+import silentorb.mythic.lookinglass.meshes.VertexSchemas
 import silentorb.mythic.platforming.WindowInfo
 import silentorb.mythic.scenery.*
 import silentorb.mythic.spatial.*
@@ -34,19 +37,29 @@ fun newRenderer(): Renderer {
 
 const val dynamicMeshId = "dynamic"
 
-fun newMesh(vertices: FloatArray, vertexSchema: VertexSchema): ModelMesh {
+fun newMesh(vertices: FloatArray, vertexSchemas: VertexSchemas): ModelMesh {
+  val displayMode = getDisplayMode()
   return ModelMesh(
       id = dynamicMeshId,
       primitives = listOf(
           Primitive(
-              mesh = GeneralMesh(
-                  vertexSchema = vertexSchema,
-                  vertexBuffer = newVertexBuffer(vertexSchema).load(createFloatBuffer(vertices)),
-                  count = vertices.size / 6
-              ),
+              mesh = if (displayMode == DisplayMode.wireframe)
+                GeneralMesh(
+                    vertexSchema = vertexSchemas.flat,
+                    vertexBuffer = newVertexBuffer(vertexSchemas.flat).load(createFloatBuffer(vertices)),
+                    count = vertices.size,
+                    primitiveType = PrimitiveType.lineSegments
+                )
+              else
+                GeneralMesh(
+                    vertexSchema = vertexSchemas.shaded,
+                    vertexBuffer = newVertexBuffer(vertexSchemas.shaded).load(createFloatBuffer(vertices)),
+                    count = vertices.size,
+                    primitiveType = PrimitiveType.triangles
+                ),
               material = Material(
                   color = Vector4(1f, 0f, 0f, 1f),
-                  shading = true
+                  shading = displayMode != DisplayMode.wireframe
               )
           )
       )
@@ -100,7 +113,7 @@ fun createScene(cameraState: CameraState): GameScene {
 fun renderMesh(vertices: FloatArray, dimensions: Vector2i, cameraState: CameraState): BufferedImage {
   val scene = createScene(cameraState)
   val initialRenderer = rendererSingleton()
-  val mesh = newMesh(vertices, initialRenderer.vertexSchemas.shaded)
+  val mesh = newMesh(vertices, initialRenderer.vertexSchemas)
   try {
     val renderer = initialRenderer
         .copy(

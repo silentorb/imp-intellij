@@ -17,11 +17,11 @@ import silentorb.imp.intellij.ui.preview.PreviewDisplay
 import silentorb.imp.intellij.ui.preview.PreviewState
 import silentorb.imp.intellij.ui.texturing.newImageElement
 import silentorb.mythic.imaging.fathoming.DistanceFunction
-import silentorb.mythic.imaging.fathoming.Sampler3dFloat
 import silentorb.mythic.spatial.Vector2i
 import java.awt.Color
 import java.awt.Dimension
 import java.awt.image.BufferedImage
+import javax.swing.JComponent
 import javax.swing.JPanel
 import javax.swing.SwingUtilities
 import javax.swing.Timer
@@ -41,7 +41,7 @@ fun defaultCameraState() =
 
 fun renderSubstance(functions: FunctionImplementationMap, graph: Graph, node: Id?, dimensions: Vector2i, cameraState: CameraState): BufferedImage? {
   val value = executeGraph(functions, graph, node)!!
-  val vertices = generateShadedMesh(value as Sampler3dFloat)
+  val vertices = generateShadedMesh(value as DistanceFunction)
   return renderMesh(vertices, dimensions, cameraState)
 }
 
@@ -76,6 +76,7 @@ class SubstancePreviewPanel : SimpleToolWindowPanel(true), Disposable {
     val currentDisplayMode = getDisplayMode()
     if (currentDisplayMode != previousDisplayMode) {
       previousDisplayMode = currentDisplayMode
+      vertices = null
       rebuildPreview()
     } else if (cameraState != previousState) {
       previousState = cameraState
@@ -97,23 +98,26 @@ fun updateMeshDisplay(vertices: FloatArray, dimensions: Vector2i, panel: Substan
   }
 }
 
+fun getPanelDimensions(panel: JComponent) =
+    Vector2i(panel.width, panel.width)
+
 fun updateMeshDisplay(panel: SubstancePreviewPanel) {
   val state = panel.previewState
   val mesh = panel.vertices
   if (state != null && mesh != null) {
-    val dimensions = Vector2i(panel.width, panel.height)
+    val dimensions = getPanelDimensions(panel)
     updateMeshDisplay(mesh, dimensions, panel)
   }
 }
 
 fun rebuildPreview(state: PreviewState, panel: SubstancePreviewPanel) {
-  val dimensions = Vector2i(panel.width, panel.height)
+  val dimensions = getPanelDimensions(panel)
   panel.startedDrawing = true
   val functions = initialFunctions()
   val value = executeGraph(functions, state.graph, state.node)
   if (value != null) {
     val vertices = if (getDisplayMode() == DisplayMode.shaded)
-      generateShadedMesh(value as Sampler3dFloat)
+      generateShadedMesh(value as DistanceFunction)
     else
       generateWireframeMesh(value as DistanceFunction)
 

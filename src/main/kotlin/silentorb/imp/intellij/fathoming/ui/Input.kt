@@ -47,7 +47,7 @@ fun initializeCameraUi(component: JComponent, getState: () -> CameraState, setSt
         val offset = event.wheelRotation
         val state = getState()
         setState(state.copy(
-            distance = max(1f, state.distance + offset.toFloat() * 0.2f)
+            distance = max(0.2f, state.distance + offset.toFloat() * 0.2f)
         ))
       }
     }
