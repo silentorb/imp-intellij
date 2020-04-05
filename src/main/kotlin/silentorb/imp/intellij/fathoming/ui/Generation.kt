@@ -78,15 +78,14 @@ fun generateWireframeMesh(getDistance: DistanceFunction): FloatArray {
         getDistance = getDistance,
         tolerance = 0.01f,
         cellSize = 1f,
-        subCells = 8
+        subCells = 32
     )
 
     val bounds = getSceneGridBounds(getDistance, config.cellSize)
-        .pad(1)
+//        .pad(1)
 
     val traceCell = traceCellEdges(config, bounds)
-    val cellCount = getBoundsCellCount(bounds)
-    val edges = (0 until cellCount).flatMap(traceCell)
+    val edges = traceAll(bounds, traceCell)
     return edges
         .flatMap(::vertexList)
         .flatMap(::toList)

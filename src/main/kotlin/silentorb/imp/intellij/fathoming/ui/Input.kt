@@ -24,7 +24,7 @@ fun initializeCameraUi(component: JComponent, getState: () -> CameraState, setSt
           val offsetX = event.x - localLastX
           val state = getState()
           setState(state.copy(
-              yaw = radial(state.yaw - offsetX.toFloat() * 0.05f)
+              yaw = radial(state.yaw - offsetX.toFloat() * 0.03f)
           ))
         }
         lastX = event.x
