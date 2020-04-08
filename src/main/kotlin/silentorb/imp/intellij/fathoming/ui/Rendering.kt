@@ -79,8 +79,14 @@ fun createScene(cameraState: CameraState): GameScene {
       main = Scene(
           camera = Camera(
               ProjectionType.perspective,
-              Vector3(-cameraState.distance, 0f, 0f).transform(Matrix.identity.rotateZ(cameraState.yaw)),
-              Quaternion().rotateZ(cameraState.yaw),
+              Vector3(-cameraState.distance, 0f, 0f)
+                  .transform(Matrix.identity
+                      .rotateZ(cameraState.yaw)
+                      .rotateY(-cameraState.pitch)
+                  ),
+              Quaternion()
+                  .rotateZ(cameraState.yaw)
+                  .rotateY(-cameraState.pitch),
               45f
           ),
           lights = listOf(

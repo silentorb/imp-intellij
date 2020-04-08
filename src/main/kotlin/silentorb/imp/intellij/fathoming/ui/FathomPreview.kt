@@ -50,6 +50,7 @@ class SubstancePreviewPanel : SimpleToolWindowPanel(true), Disposable {
   var previousState: CameraState = cameraState
   var previewState: PreviewState? = null
   var startedDrawing: Boolean = false
+  var meshSource: MeshSource? = null
   var vertices: FloatArray? = null
   var previousDisplayMode = getDisplayMode()
   val updateTimer = Timer(33) { event ->
@@ -62,22 +63,12 @@ class SubstancePreviewPanel : SimpleToolWindowPanel(true), Disposable {
     updateTimer.start()
   }
 
-  fun rebuildPreview() {
-    val state = previewState
-    if (state != null) {
-      rebuildPreview(state, this)
-
-      // TODO: This should eventually be handled elsewhere once surfacing is moved to a separate thread
-      updateMeshDisplay(this)
-    }
-  }
-
   fun checkUpdate() {
     val currentDisplayMode = getDisplayMode()
     if (currentDisplayMode != previousDisplayMode) {
       previousDisplayMode = currentDisplayMode
       vertices = null
-      rebuildPreview()
+      rebuildPreview(this)
     } else if (cameraState != previousState) {
       previousState = cameraState
       updateMeshDisplay(this)
@@ -110,19 +101,29 @@ fun updateMeshDisplay(panel: SubstancePreviewPanel) {
   }
 }
 
-fun rebuildPreview(state: PreviewState, panel: SubstancePreviewPanel) {
+fun rebuildPreview(panel: SubstancePreviewPanel) {
   val dimensions = getPanelDimensions(panel)
+  panel.startedDrawing = true
+  val meshSource = panel.meshSource
+  if (meshSource != null) {
+    val vertices = if (getDisplayMode() == DisplayMode.shaded)
+      generateShadedMesh(meshSource)
+    else
+      generateWireframeMesh(meshSource)
+
+    panel.vertices = vertices
+    updateMeshDisplay(vertices, dimensions, panel)
+  }
+}
+
+fun rebuildPreviewSource(state: PreviewState, panel: SubstancePreviewPanel) {
   panel.startedDrawing = true
   val functions = initialFunctions()
   val value = executeGraph(functions, state.graph, state.node)
   if (value != null) {
-    val vertices = if (getDisplayMode() == DisplayMode.shaded)
-      generateShadedMesh(value as DistanceFunction)
-    else
-      generateWireframeMesh(value as DistanceFunction)
-
-    panel.vertices = vertices
-    updateMeshDisplay(vertices, dimensions, panel)
+    val source = generateMesh(value as DistanceFunction)
+    panel.meshSource = source
+    rebuildPreview(panel)
   }
 }
 
@@ -149,7 +150,7 @@ fun newSubstancePreview(props: NewPreviewProps): PreviewDisplay {
       content = container,
       update = { state ->
         container.previewState = state
-        rebuildPreview(state, container)
+        rebuildPreviewSource(state, container)
       }
   )
 }

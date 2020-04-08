@@ -20,11 +20,14 @@ fun initializeCameraUi(component: JComponent, getState: () -> CameraState, setSt
       if (event != null) {
 //        println("dragged ${event.x} ${event.y}")
         val localLastX = lastX
-        if (localLastX != null) {
+        val localLastY = lastY
+        if (localLastX != null && localLastY != null) {
           val offsetX = event.x - localLastX
+          val offsetY = event.y - localLastY
           val state = getState()
           setState(state.copy(
-              yaw = radial(state.yaw - offsetX.toFloat() * 0.03f)
+              yaw = radial(state.yaw - offsetX.toFloat() * 0.03f),
+              pitch = radial(state.pitch - offsetY.toFloat() * 0.01f)
           ))
         }
         lastX = event.x
