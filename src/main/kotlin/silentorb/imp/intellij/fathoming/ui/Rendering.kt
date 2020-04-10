@@ -82,11 +82,11 @@ fun createScene(cameraState: CameraState): GameScene {
               Vector3(-cameraState.distance, 0f, 0f)
                   .transform(Matrix.identity
                       .rotateZ(cameraState.yaw)
-                      .rotateY(-cameraState.pitch)
+                      .rotateY(cameraState.pitch)
                   ),
               Quaternion()
                   .rotateZ(cameraState.yaw)
-                  .rotateY(-cameraState.pitch),
+                  .rotateY(cameraState.pitch),
               45f
           ),
           lights = listOf(

@@ -20,4 +20,4 @@ let output = mask foreground background (checkers 3 3)
         detail = 75
         variation = 18
         strength = 19
-     . gaussianBlur 13
+--     . gaussianBlur 13
