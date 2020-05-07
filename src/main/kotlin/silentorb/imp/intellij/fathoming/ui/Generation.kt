@@ -110,8 +110,7 @@ fun generateMesh(getDistance: DistanceFunction): MeshSource {
   val bounds = getSceneGridBounds(getDistance, config.cellSize)
         .pad(1)
 
-  val traceCell = traceCellEdges(config, bounds)
-  val edges = traceAllSimple(config, bounds, traceCell)
+  val edges = traceAllSimple(bounds, config)
   val vertices = getVerticesFromEdges(edges)
   val faces = getFaces(getDistance, edges)
   return MeshSource(

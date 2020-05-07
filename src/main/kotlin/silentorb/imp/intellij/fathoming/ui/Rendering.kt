@@ -74,47 +74,30 @@ fun rendererSingleton(): Renderer {
   return staticRenderer!!
 }
 
-fun createScene(cameraState: CameraState): GameScene {
-  return GameScene(
-      main = Scene(
-          camera = Camera(
-              ProjectionType.perspective,
-              Vector3(-cameraState.distance, 0f, 0f)
-                  .transform(Matrix.identity
-                      .rotateZ(cameraState.yaw)
-                      .rotateY(cameraState.pitch)
-                  ),
-              Quaternion()
-                  .rotateZ(cameraState.yaw)
-                  .rotateY(cameraState.pitch),
-              45f
-          ),
-          lights = listOf(
-              Light(
-                  type = LightType.point,
-                  color = Vector4(1f),
-                  offset = Vector3(0f, 5f, 10f),
-                  range = 20f
-              )
-          ),
-          lightingConfig = LightingConfig(ambient = 0.3f)
-      ),
-      opaqueElementGroups = listOf(
-          ElementGroup(
-              meshes = listOf(
-                  MeshElement(
-                      id = 1L,
-                      mesh = dynamicMeshId,
-                      transform = Matrix.identity
-                  )
-              )
-          )
-      ),
-      transparentElementGroups = listOf(),
-      filters = listOf(),
-      background = listOf()
-  )
-}
+fun createScene(cameraState: CameraState) =
+    Scene(
+        camera = Camera(
+            ProjectionType.perspective,
+            Vector3(-cameraState.distance, 0f, 0f)
+                .transform(Matrix.identity
+                    .rotateZ(cameraState.yaw)
+                    .rotateY(cameraState.pitch)
+                ),
+            Quaternion()
+                .rotateZ(cameraState.yaw)
+                .rotateY(cameraState.pitch),
+            45f
+        ),
+        lights = listOf(
+            Light(
+                type = LightType.point,
+                color = Vector4(1f),
+                offset = Vector3(0f, 5f, 10f),
+                range = 20f
+            )
+        ),
+        lightingConfig = LightingConfig(ambient = 0.3f)
+    )
 
 fun renderMesh(vertices: FloatArray, dimensions: Vector2i, cameraState: CameraState): BufferedImage {
   val scene = createScene(cameraState)
@@ -138,7 +121,21 @@ fun renderMesh(vertices: FloatArray, dimensions: Vector2i, cameraState: CameraSt
       glow.state.viewport = Vector4i(0, 0, dimensions.x, dimensions.y)
       glow.operations.clearScreen()
       glow.state.cullFaces = false
-      renderElements(sceneRenderer, scene.opaqueElementGroups, scene.transparentElementGroups)
+      val layer = SceneLayer(
+          elements = listOf(
+              ElementGroup(
+                  meshes = listOf(
+                      MeshElement(
+                          id = 1L,
+                          mesh = dynamicMeshId,
+                          transform = Matrix.identity
+                      )
+                  )
+              )
+          ),
+          useDepth = true
+      )
+      renderSceneLayer(sceneRenderer, sceneRenderer.camera, layer)
       checkError("It worked")
     }
   } finally {

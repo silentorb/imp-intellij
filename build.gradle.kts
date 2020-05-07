@@ -1,7 +1,7 @@
 plugins {
     base
     id("org.jetbrains.intellij") version "0.4.16"
-    kotlin("jvm") version "1.3.71"
+    kotlin("jvm") version "1.3.72"
 }
 
 group = "silentorb.imp"
