@@ -17,6 +17,7 @@ dependencies {
     implementation("silentorb.imp:execution")
     implementation("silentorb.imp:libraries_standard")
     implementation("silentorb.imp:libraries_standard_implementation")
+    implementation("silentorb.mythic:aura_generation")
     implementation("silentorb.mythic:imaging")
     implementation("silentorb.mythic:lookinglass")
     implementation("silentorb.mythic:desktop")
