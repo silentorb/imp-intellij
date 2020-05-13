@@ -69,12 +69,13 @@ class ImpLexer : Lexer() {
       val step = nextToken(buffer!!, position)
       val stepToken = step.token
       if (stepToken != null && stepToken.range.start.index > position.index) {
-        token = Token(
-            Rune.whitespace,
-            range = Range(position, stepToken.range.start),
-            value = ""
-        )
-        position = stepToken.range.start
+        throw Error("This shouldn't be needed anymore")
+//        token = Token(
+//            Rune.whitespace,
+//            range = Range(position, stepToken.range.start),
+//            value = ""
+//        )
+//        position = stepToken.range.start
       } else {
         position = step.position
         token = step.token
