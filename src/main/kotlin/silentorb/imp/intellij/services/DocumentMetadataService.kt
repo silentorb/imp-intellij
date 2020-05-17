@@ -9,11 +9,11 @@ import com.intellij.openapi.project.Project
 import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.psi.PsiDocumentManager
 import com.intellij.util.xmlb.XmlSerializerUtil
-import silentorb.imp.core.Id
+import silentorb.imp.core.PathKey
 import silentorb.imp.intellij.messaging.nodePreviewTopic
 
 data class DocumentMetadata(
-    var previewNodes: MutableMap<String, Id> = mutableMapOf()
+    var previewNodes: MutableMap<String, PathKey> = mutableMapOf()
 )
 
 @Service
@@ -29,10 +29,10 @@ class DocumentMetadataService : PersistentStateComponent<DocumentMetadata> {
     XmlSerializerUtil.copyBean(state, internalState)
   }
 
-  fun getPreviewNode(document: Document): Id? =
+  fun getPreviewNode(document: Document): PathKey? =
       internalState.previewNodes[getDocumentFile(document)?.name]
 
-  fun setPreviewNode(project: Project, document: Document, node: Id?) {
+  fun setPreviewNode(project: Project, document: Document, node: PathKey?) {
     val file = getDocumentFile(document)
     if (file != null) {
       if (node != internalState.previewNodes[file.name]) {

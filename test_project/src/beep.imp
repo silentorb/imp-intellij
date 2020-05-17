@@ -1,5 +1,4 @@
 import silentorb.mythic.aura.generation.*
 
-let osc1 = oscillator sine 523.0
+let output = period random (Time 0 0) (Time 1 0)
 
-let output = period osc1 (Time 0 0) (Time 1 0)

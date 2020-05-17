@@ -5,7 +5,7 @@ import com.intellij.openapi.actionSystem.ActionManager
 import com.intellij.openapi.actionSystem.DefaultActionGroup
 import com.intellij.openapi.ui.SimpleToolWindowPanel
 import silentorb.imp.core.Graph
-import silentorb.imp.core.Id
+import silentorb.imp.core.PathKey
 import silentorb.imp.execution.FunctionImplementationMap
 import silentorb.imp.intellij.fathoming.actions.DisplayModeAction
 import silentorb.imp.intellij.fathoming.state.DisplayMode
@@ -39,7 +39,7 @@ fun defaultCameraState() =
         distance = 5f
     )
 
-fun renderSubstance(functions: FunctionImplementationMap, graph: Graph, node: Id?, dimensions: Vector2i, cameraState: CameraState): BufferedImage? {
+fun renderSubstance(functions: FunctionImplementationMap, graph: Graph, node: PathKey?, dimensions: Vector2i, cameraState: CameraState): BufferedImage? {
   val value = executeGraph(functions, graph, node)!!
   val vertices = generateShadedMesh(value as DistanceFunction)
   return renderMesh(vertices, dimensions, cameraState)

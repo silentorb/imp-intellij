@@ -3,7 +3,7 @@ package silentorb.imp.intellij.aura.ui
 import com.intellij.openapi.Disposable
 import com.intellij.openapi.ui.SimpleToolWindowPanel
 import silentorb.imp.core.Graph
-import silentorb.imp.core.Id
+import silentorb.imp.core.PathKey
 import silentorb.imp.execution.FunctionImplementationMap
 import silentorb.imp.intellij.fathoming.ui.executeGraph
 import silentorb.imp.intellij.services.initialFunctions
@@ -17,7 +17,7 @@ import java.nio.ShortBuffer
 
 const val sampleRate = 44100
 
-fun renderImpAudio(functions: FunctionImplementationMap, graph: Graph, node: Id?): Pair<ShortBuffer, Int> {
+fun renderImpAudio(functions: FunctionImplementationMap, graph: Graph, node: PathKey?): Pair<ShortBuffer, Int> {
   val value = executeGraph(functions, graph, node)!!
   val output = value as AudioOutput
   return Pair(renderAudioTo16bit(AudioConfig(sampleRate), output), output.samplers.size)

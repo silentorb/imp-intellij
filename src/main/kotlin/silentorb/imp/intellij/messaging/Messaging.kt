@@ -2,7 +2,7 @@ package silentorb.imp.intellij.messaging
 
 import com.intellij.openapi.editor.Document
 import com.intellij.util.messages.Topic
-import silentorb.imp.core.Id
+import silentorb.imp.core.PathKey
 import silentorb.imp.parsing.parser.Dungeon
 
 interface ParsingNotifier {
@@ -18,7 +18,7 @@ interface ToggleTilingNotifier {
 val toggleTilingTopic = Topic.create("toggleTiling", ToggleTilingNotifier::class.java)
 
 interface NodePreviewNotifier {
-  fun handle(document: Document, node: Id?)
+  fun handle(document: Document, node: PathKey?)
 }
 
 val nodePreviewTopic = Topic.create("nodePreview", NodePreviewNotifier::class.java)

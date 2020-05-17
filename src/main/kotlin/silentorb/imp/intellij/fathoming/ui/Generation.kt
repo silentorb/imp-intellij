@@ -1,7 +1,7 @@
 package silentorb.imp.intellij.fathoming.ui
 
 import silentorb.imp.core.Graph
-import silentorb.imp.core.Id
+import silentorb.imp.core.PathKey
 import silentorb.imp.core.getGraphOutputNode
 import silentorb.imp.execution.FunctionImplementationMap
 import silentorb.imp.execution.execute
@@ -59,7 +59,7 @@ fun simplify(vertices: FloatArray): FloatArray {
       .toFloatArray()
 }
 
-fun executeGraph(functions: FunctionImplementationMap, graph: Graph, node: Id?): Any? {
+fun executeGraph(functions: FunctionImplementationMap, graph: Graph, node: PathKey?): Any? {
   val output = node ?: getGraphOutputNode(graph)
   val values = execute(functions, graph)
   return values[output]

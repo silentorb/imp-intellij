@@ -11,7 +11,7 @@ import com.intellij.psi.PsiFile
 import com.intellij.psi.PsiFileFactory
 import com.intellij.psi.impl.PsiFileFactoryImpl
 import com.intellij.psi.util.elementType
-import silentorb.imp.core.Id
+import silentorb.imp.core.PathKey
 import silentorb.imp.intellij.language.ImpLanguage
 import silentorb.imp.intellij.services.getImpLanguageService
 import silentorb.imp.intellij.services.initialContext
@@ -114,7 +114,7 @@ fun findNodeEntry(nodeMap: NodeMap, offset: Int) =
     nodeMap.entries
         .firstOrNull { (_, range) -> isInRange(range, offset) }
 
-fun findNode(nodeMap: NodeMap, offset: Int): Id? =
+fun findNode(nodeMap: NodeMap, offset: Int): PathKey? =
     findNodeEntry(nodeMap, offset)?.key
 
 fun resizeListener(component: JComponent, onResize: () -> Unit) =

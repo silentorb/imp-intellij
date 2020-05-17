@@ -12,7 +12,6 @@ import com.intellij.openapi.util.Disposer
 import com.intellij.ui.content.ContentManager
 import com.intellij.util.messages.MessageBusConnection
 import silentorb.imp.core.Graph
-import silentorb.imp.core.Id
 import silentorb.imp.core.PathKey
 import silentorb.imp.core.getGraphOutputNode
 import silentorb.imp.execution.arrangeGraphSequence
@@ -43,8 +42,8 @@ data class PreviewDisplay(
 
 data class PreviewState(
     val graph: Graph,
-    val node: Id?,
-    val steps: List<Id>,
+    val node: PathKey?,
+    val steps: List<PathKey>,
     val type: PathKey,
     val timestamp: Long
 )
@@ -88,7 +87,7 @@ class PreviewContainer(project: Project, contentManager: ContentManager) : JPane
     val bus = ApplicationManager.getApplication().getMessageBus()
     connection = bus.connect()
     connection.subscribe(nodePreviewTopic, object : NodePreviewNotifier {
-      override fun handle(document: Document, node: Id?) {
+      override fun handle(document: Document, node: PathKey?) {
         if (document == previousDocument) {
           update(lastDungeon, lastErrors)
         }
@@ -139,7 +138,7 @@ fun updatePreviewState(
     graph: Graph,
     timestamp: Long,
     container: PreviewContainer,
-    node: Id?
+    node: PathKey?
 ): PreviewState {
   val steps = arrangeGraphSequence(graph)
   sourceLock.lock()
@@ -155,7 +154,7 @@ fun updatePreviewState(
   return state
 }
 
-fun updatePreview(preview: PreviewContainer, graph: Graph, type: PathKey, timestamp: Long, node: Id?) {
+fun updatePreview(preview: PreviewContainer, graph: Graph, type: PathKey, timestamp: Long, node: PathKey?) {
   if (type != preview.state?.type) {
     val newDisplay = newPreview(type, Vector2i(preview.width))
     if (newDisplay != null) {
@@ -210,18 +209,18 @@ fun trySetPreviewTimestamp(timestamp: Long): Boolean {
   }
 }
 
-fun updatePreview(graph: Graph, preview: PreviewContainer, timestamp: Long, node: Id?) {
+fun updatePreview(graph: Graph, preview: PreviewContainer, timestamp: Long, node: PathKey?) {
   if (!trySetPreviewTimestamp(timestamp))
     return
 
   val output = node ?: getGraphOutputNode(graph)
-  val type = graph.types[output]
+  val type = graph.references[output]
   if (type != null) {
     updatePreview(preview, graph, type, timestamp, node)
   }
 }
 
-fun update(container: PreviewContainer, dungeon: Dungeon?, errors: ParsingErrors, node: Id?) {
+fun update(container: PreviewContainer, dungeon: Dungeon?, errors: ParsingErrors, node: PathKey?) {
   if (dungeon == null) {
     container.state = null
     container.display = null
