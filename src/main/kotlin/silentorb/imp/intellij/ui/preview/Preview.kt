@@ -13,6 +13,7 @@ import com.intellij.ui.content.ContentManager
 import com.intellij.util.messages.MessageBusConnection
 import silentorb.imp.core.Graph
 import silentorb.imp.core.PathKey
+import silentorb.imp.core.TypeHash
 import silentorb.imp.core.getGraphOutputNode
 import silentorb.imp.execution.arrangeGraphSequence
 import silentorb.imp.intellij.messaging.NodePreviewNotifier
@@ -44,7 +45,7 @@ data class PreviewState(
     val graph: Graph,
     val node: PathKey?,
     val steps: List<PathKey>,
-    val type: PathKey,
+    val type: TypeHash,
     val timestamp: Long
 )
 
@@ -123,7 +124,7 @@ fun messagePanel(message: String): JPanel {
   return panel
 }
 
-fun newPreview(type: PathKey, dimensions: Vector2i): PreviewDisplay? {
+fun newPreview(type: TypeHash, dimensions: Vector2i): PreviewDisplay? {
   val display = previewTypes().get(type)
   return if (display != null)
     display(NewPreviewProps(dimensions))
@@ -134,7 +135,7 @@ fun newPreview(type: PathKey, dimensions: Vector2i): PreviewDisplay? {
 private val sourceLock = ReentrantLock()
 
 fun updatePreviewState(
-    type: PathKey,
+    type: TypeHash,
     graph: Graph,
     timestamp: Long,
     container: PreviewContainer,
@@ -154,7 +155,7 @@ fun updatePreviewState(
   return state
 }
 
-fun updatePreview(preview: PreviewContainer, graph: Graph, type: PathKey, timestamp: Long, node: PathKey?) {
+fun updatePreview(preview: PreviewContainer, graph: Graph, type: TypeHash, timestamp: Long, node: PathKey?) {
   if (type != preview.state?.type) {
     val newDisplay = newPreview(type, Vector2i(preview.width))
     if (newDisplay != null) {
@@ -171,8 +172,8 @@ fun updatePreview(preview: PreviewContainer, graph: Graph, type: PathKey, timest
         Disposer.register(preview, component)
       }
     } else {
-      val typeName = type.path + "." + type.name
-      replacePanelContents(preview, messagePanel("No preview for type of $typeName"))
+//      val typeName = type.path + "." + type.name
+      replacePanelContents(preview, messagePanel("No preview for type"))
 //      preview.setContent(messagePanel("No preview for type of $typeName"))
     }
   }
@@ -214,7 +215,7 @@ fun updatePreview(graph: Graph, preview: PreviewContainer, timestamp: Long, node
     return
 
   val output = node ?: getGraphOutputNode(graph)
-  val type = graph.references[output]
+  val type = graph.nodeTypes[output]
   if (type != null) {
     updatePreview(preview, graph, type, timestamp, node)
   }

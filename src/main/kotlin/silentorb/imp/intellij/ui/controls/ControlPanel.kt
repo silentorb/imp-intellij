@@ -17,6 +17,7 @@ import silentorb.imp.parsing.general.Range
 import silentorb.imp.parsing.parser.Dungeon
 import silentorb.imp.parsing.parser.parseText
 import silentorb.mythic.imaging.texturing.rgbColorKey
+import silentorb.mythic.imaging.texturing.rgbColorType
 import java.awt.Dimension
 import javax.swing.*
 
@@ -81,28 +82,31 @@ data class ControlField(
     val name: String,
     val nodes: List<PathKey>,
     val psiElements: List<PsiElementWrapper>,
-    val type: PathKey,
+    val type: TypeHash,
     val valueRange: NumericTypeConstraint?
 )
 
 typealias ComplexTypeControl = (ChangePsiValue, List<PsiElementWrapper>, List<Any>) -> JComponent
 
-private val complexTypeControls = mapOf<PathKey, ComplexTypeControl>(
-    rgbColorKey to ::newColorPicker
+private val complexTypeControls = mapOf<TypeHash, ComplexTypeControl>(
+    rgbColorType to ::newColorPicker
 )
 
 fun newFieldControl(getPsiElement: GetPsiValue, context: Context, dungeon: Dungeon, node: PathKey): ControlField? {
-  val functionType = dungeon.graph.references[node]
+  val graph = dungeon.graph
+  val functionType = graph.implementationTypes[node]
   val complexTypeControl = complexTypeControls[functionType]
-  val type = dungeon.literalConstraints[node]
+  val type = graph.implementationTypes[node]
       ?: if (complexTypeControl != null)
         functionType
       else
         null
 
-  val parameters = dungeon.graph.signatureMatches.values.flatMap { match ->
-    match.alignment.filter { it.value == node }.keys
-  }
+  val connections = graph.connections.filter { it.destination == node }
+  val parameters = connections
+//      .flatMap { match ->
+//    match.alignment.filter { it.value == node }.keys
+//  }
   return if (type != null && parameters.any()) {
     val nodes = if (complexTypeControl != null) {
       dungeon.graph.connections
@@ -120,7 +124,7 @@ fun newFieldControl(getPsiElement: GetPsiValue, context: Context, dungeon: Dunge
     val psiElements = offsets.map(getPsiElement).filterNotNull()
     if (psiElements.any())
       ControlField(
-          name = parameters.first(),
+          name = parameters.first().parameter,
           nodes = nodes,
           psiElements = psiElements,
           type = type,
@@ -133,11 +137,13 @@ fun newFieldControl(getPsiElement: GetPsiValue, context: Context, dungeon: Dunge
 }
 
 fun gatherControlFields(getPsiElement: GetPsiValue, context: Context, dungeon: Dungeon, node: PathKey): List<ControlField> {
-  val function = dungeon.graph.references[node]
+  val graph = dungeon.graph
+  val function = graph.implementationTypes[node]
   return if (function != null && !complexTypeControls.containsKey(function)) {
-    val signatureMatch = dungeon.graph.signatureMatches[node]!!
-    signatureMatch.alignment.mapNotNull { (_, argumentNode) ->
-      newFieldControl(getPsiElement, context, dungeon, argumentNode)
+
+    val connections = graph.connections.filter { it.destination == node }
+    connections.mapNotNull { connection ->
+      newFieldControl(getPsiElement, context, dungeon, connection.source)
     }
   } else {
     listOfNotNull(newFieldControl(getPsiElement, context, dungeon, node))

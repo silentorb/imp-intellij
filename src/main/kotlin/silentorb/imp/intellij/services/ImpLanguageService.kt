@@ -5,8 +5,10 @@ import com.intellij.openapi.components.ServiceManager
 import com.intellij.openapi.editor.Document
 import com.intellij.psi.PsiFile
 import silentorb.imp.core.*
+import silentorb.imp.execution.CompleteFunction
 import silentorb.imp.execution.FunctionImplementationMap
 import silentorb.imp.execution.combineLibraries
+import silentorb.imp.execution.newLibrary
 import silentorb.imp.library.implementation.standard.standardLibrary
 import silentorb.imp.parsing.general.PartitionedResponse
 import silentorb.imp.parsing.parser.Dungeon
@@ -17,12 +19,22 @@ import silentorb.mythic.imaging.texturing.texturingLibrary
 import java.util.*
 
 val scaleLengthKey = PathKey("silentorb.mythic.injected", "scaleLength")
+val scaleLengthType = scaleLengthKey.hashCode()
 val scaleLengthSignature = Signature(
     parameters = listOf(
-        Parameter("length", intKey)
+        Parameter("length", intType)
     ),
-    output = intKey
+    output = intType
 )
+
+fun impLanguageLibrary() =
+    newLibrary(listOf(
+        CompleteFunction(
+            path = scaleLengthKey,
+            signature = scaleLengthSignature,
+            implementation = {}
+        )
+    ))
 
 data class DungeonArtifact(
     val response: PartitionedResponse<Dungeon>,
@@ -40,19 +52,10 @@ class ImpLanguageService {
         standardLibrary(),
         auraLibrary(),
         texturingLibrary(),
-        fathomLibrary()
+        fathomLibrary(),
+        impLanguageLibrary()
     )
-    context = listOf(
-        library.namespace.copy(
-            functions = library.namespace.functions.plus(
-                mapOf(
-                    scaleLengthKey to listOf(
-                        scaleLengthSignature
-                    )
-                )
-            )
-        )
-    )
+    context = listOf(library.namespace)
     functions = library.implementation
   }
 
