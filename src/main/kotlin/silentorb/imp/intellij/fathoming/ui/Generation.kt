@@ -6,6 +6,9 @@ import silentorb.imp.core.getGraphOutputNode
 import silentorb.imp.execution.FunctionImplementationMap
 import silentorb.imp.execution.execute
 import silentorb.mythic.imaging.fathoming.DistanceFunction
+import silentorb.mythic.imaging.fathoming.sampling.SamplePoint
+import silentorb.mythic.imaging.fathoming.sampling.SamplingConfig
+import silentorb.mythic.imaging.fathoming.sampling.sampleFunction
 import silentorb.mythic.imaging.fathoming.surfacing.*
 import silentorb.mythic.imaging.fathoming.surfacing.old.*
 import silentorb.mythic.imaging.fathoming.surfacing.old.marching.marchingCubes
@@ -99,24 +102,16 @@ data class MeshSource(
     val faces: List<VertexFace>
 )
 
-fun generateMesh(getDistance: DistanceFunction): MeshSource {
-  val config = SurfacingConfig(
+fun generateMesh(getDistance: DistanceFunction): List<SamplePoint> {
+  val config = SamplingConfig(
       getDistance = getDistance,
-      normalTolerance = 0.01f,
-      cellSize = 1f,
-      subCells = 16
+      resolution = 10
   )
 
-  val bounds = getSceneGridBounds(getDistance, config.cellSize)
-        .pad(1)
+  val bounds = getSceneGridBounds(getDistance, 1f)
+      .pad(1)
 
-  val edges = traceAllSimple(bounds, config)
-  val vertices = getVerticesFromEdges(edges)
-  val faces = getFaces(getDistance, edges)
-  return MeshSource(
-      edges = edges,
-      faces = faces
-  )
+  return sampleFunction(config, bounds)
 }
 
 fun generateWireframeMesh(mesh: MeshSource): FloatArray {

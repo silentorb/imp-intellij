@@ -7,7 +7,7 @@ import silentorb.imp.parsing.parser.parseText
 import silentorb.mythic.spatial.Vector2i
 
 val impCode = """
-import silentorb.mythic.substance.*
+import silentorb.mythic.fathom.*
 let output = sphere 1.5
 """.trimIndent()
 

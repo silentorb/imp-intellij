@@ -17,7 +17,9 @@ import silentorb.imp.intellij.ui.preview.PreviewDisplay
 import silentorb.imp.intellij.ui.preview.PreviewState
 import silentorb.imp.intellij.ui.texturing.newImageElement
 import silentorb.mythic.imaging.fathoming.DistanceFunction
+import silentorb.mythic.imaging.fathoming.sampling.SamplePoint
 import silentorb.mythic.spatial.Vector2i
+import silentorb.mythic.spatial.toList
 import java.awt.Color
 import java.awt.Dimension
 import java.awt.image.BufferedImage
@@ -41,7 +43,7 @@ fun defaultCameraState() =
 
 fun renderSubstance(functions: FunctionImplementationMap, graph: Graph, node: PathKey?, dimensions: Vector2i, cameraState: CameraState): BufferedImage? {
   val value = executeGraph(functions, graph, node)!!
-  val vertices = generateShadedMesh(value as DistanceFunction)
+  val vertices = flattenSamplePoints(generateMesh(value as DistanceFunction))
   return renderMesh(vertices, dimensions, cameraState)
 }
 
@@ -50,7 +52,7 @@ class SubstancePreviewPanel : SimpleToolWindowPanel(true), Disposable {
   var previousState: CameraState = cameraState
   var previewState: PreviewState? = null
   var startedDrawing: Boolean = false
-  var meshSource: MeshSource? = null
+  var meshSource: List<SamplePoint>? = null
   var vertices: FloatArray? = null
   var previousDisplayMode = getDisplayMode()
   val updateTimer = Timer(33) { event ->
@@ -101,15 +103,23 @@ fun updateMeshDisplay(panel: SubstancePreviewPanel) {
   }
 }
 
+fun flattenSamplePoints(points: List<SamplePoint>) =
+    points
+        .flatMap { toList(it.location) + toList(it.normal) + listOf(it.size) + toList(it.color) }
+        .toFloatArray()
+
 fun rebuildPreview(panel: SubstancePreviewPanel) {
   val dimensions = getPanelDimensions(panel)
   panel.startedDrawing = true
   val meshSource = panel.meshSource
   if (meshSource != null) {
-    val vertices = if (getDisplayMode() == DisplayMode.shaded)
-      generateShadedMesh(meshSource)
-    else
-      generateWireframeMesh(meshSource)
+//    val vertices = if (getDisplayMode() == DisplayMode.shaded)
+//      generateShadedMesh(meshSource)
+//    else
+//      generateWireframeMesh(meshSource)
+    val vertices = meshSource
+        .flatMap { toList(it.location) + toList(it.normal) + listOf(it.size) + toList(it.color) }
+        .toFloatArray()
 
     panel.vertices = vertices
     updateMeshDisplay(vertices, dimensions, panel)
