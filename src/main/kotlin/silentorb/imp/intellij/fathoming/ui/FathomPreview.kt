@@ -21,6 +21,7 @@ import silentorb.mythic.imaging.fathoming.modelFunctionType
 import silentorb.mythic.imaging.fathoming.distanceFunctionType
 import silentorb.mythic.imaging.fathoming.sampling.SamplePoint
 import silentorb.mythic.spatial.Vector2i
+import silentorb.mythic.spatial.Vector3
 import silentorb.mythic.spatial.Vector4
 import silentorb.mythic.spatial.toList
 import java.awt.Color
@@ -46,7 +47,7 @@ fun defaultCameraState() =
 
 fun renderSubstance(functions: FunctionImplementationMap, graph: Graph, node: PathKey?, dimensions: Vector2i, cameraState: CameraState): BufferedImage? {
   val value = executeGraph(functions, graph, node)!!
-  val vertices = flattenSamplePoints(sampleMesh(value as DistanceFunction) { Vector4(1f, 0f, 0f, 1f) })
+  val vertices = flattenSamplePoints(sampleMesh(value as DistanceFunction) { Vector3(1f, 0f, 0f) })
   return renderMesh(vertices, dimensions, cameraState)
 }
 
@@ -136,7 +137,7 @@ fun rebuildPreviewSource(state: PreviewState, panel: SubstancePreviewPanel) {
   if (value != null) {
     when (state.type) {
       distanceFunctionType -> {
-        val source = sampleMesh(value as DistanceFunction) { Vector4(1f, 0f, 0f, 1f) }
+        val source = sampleMesh(value as DistanceFunction) { Vector3(1f, 0f, 0f) }
         panel.meshSource = source
       }
       modelFunctionType -> {

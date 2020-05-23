@@ -1,11 +1,12 @@
 import silentorb.mythic.fathom.*
+import silentorb.mythic.generation.texturing.RgbColor
 
-let distance = cube (Vector3 2.0 2.0 2.0)
+let distance = sphere 1.5
 
 let color = noise
     scale = 63
     detail = 78
     variation = 1
-    . colorize (RgbColor 12 68 20) (RgbColor 0 0 0)
+    . colorize (RgbColor 12 255 20) (RgbColor 0 0 0)
 
 let output = newModel distance color

@@ -8,6 +8,7 @@ import silentorb.mythic.spatial.Vector2i
 
 val impCode = """
 import silentorb.mythic.fathom.*
+import silentorb.mythic.generation.texturing.RgbColor
 
 let distance = cube (Vector3 2.0 2.0 2.0)
 
@@ -27,6 +28,9 @@ object FathomLab {
     val context = languageService.context
     val functions = languageService.functions
     val (dungeon, errors) = parseText(context)(impCode)
+    if (errors.any())
+      throw Error(errors.first().message.name)
+
     val graph = dungeon.graph
     val dimensions = Vector2i(400, 400)
     val cameraState = defaultCameraState()

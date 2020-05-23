@@ -5,7 +5,7 @@ import silentorb.imp.core.PathKey
 import silentorb.imp.core.getGraphOutputNode
 import silentorb.imp.execution.FunctionImplementationMap
 import silentorb.imp.execution.execute
-import silentorb.mythic.imaging.fathoming.ColorFunction
+import silentorb.mythic.imaging.fathoming.RgbColorFunction
 import silentorb.mythic.imaging.fathoming.DistanceFunction
 import silentorb.mythic.imaging.fathoming.sampling.SamplePoint
 import silentorb.mythic.imaging.fathoming.sampling.SamplingConfig
@@ -103,11 +103,11 @@ data class MeshSource(
     val faces: List<VertexFace>
 )
 
-fun sampleMesh(getDistance: DistanceFunction, getColor: ColorFunction): List<SamplePoint> {
+fun sampleMesh(getDistance: DistanceFunction, getColor: RgbColorFunction): List<SamplePoint> {
   val config = SamplingConfig(
       getDistance = getDistance,
       getColor = getColor,
-      resolution = 10
+      resolution = 20
   )
 
   val bounds = getSceneGridBounds(getDistance, 1f)
