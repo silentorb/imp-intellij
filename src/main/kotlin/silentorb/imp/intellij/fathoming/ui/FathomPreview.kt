@@ -8,7 +8,6 @@ import silentorb.imp.core.Graph
 import silentorb.imp.core.PathKey
 import silentorb.imp.execution.FunctionImplementationMap
 import silentorb.imp.intellij.fathoming.actions.DisplayModeAction
-import silentorb.imp.intellij.fathoming.state.DisplayMode
 import silentorb.imp.intellij.fathoming.state.getDisplayMode
 import silentorb.imp.intellij.services.initialFunctions
 import silentorb.imp.intellij.ui.misc.resizeListener
@@ -16,9 +15,13 @@ import silentorb.imp.intellij.ui.preview.NewPreviewProps
 import silentorb.imp.intellij.ui.preview.PreviewDisplay
 import silentorb.imp.intellij.ui.preview.PreviewState
 import silentorb.imp.intellij.ui.texturing.newImageElement
+import silentorb.mythic.imaging.fathoming.ModelFunction
 import silentorb.mythic.imaging.fathoming.DistanceFunction
+import silentorb.mythic.imaging.fathoming.modelFunctionType
+import silentorb.mythic.imaging.fathoming.distanceFunctionType
 import silentorb.mythic.imaging.fathoming.sampling.SamplePoint
 import silentorb.mythic.spatial.Vector2i
+import silentorb.mythic.spatial.Vector4
 import silentorb.mythic.spatial.toList
 import java.awt.Color
 import java.awt.Dimension
@@ -43,7 +46,7 @@ fun defaultCameraState() =
 
 fun renderSubstance(functions: FunctionImplementationMap, graph: Graph, node: PathKey?, dimensions: Vector2i, cameraState: CameraState): BufferedImage? {
   val value = executeGraph(functions, graph, node)!!
-  val vertices = flattenSamplePoints(generateMesh(value as DistanceFunction))
+  val vertices = flattenSamplePoints(sampleMesh(value as DistanceFunction) { Vector4(1f, 0f, 0f, 1f) })
   return renderMesh(vertices, dimensions, cameraState)
 }
 
@@ -131,8 +134,18 @@ fun rebuildPreviewSource(state: PreviewState, panel: SubstancePreviewPanel) {
   val functions = initialFunctions()
   val value = executeGraph(functions, state.graph, state.node)
   if (value != null) {
-    val source = generateMesh(value as DistanceFunction)
-    panel.meshSource = source
+    when (state.type) {
+      distanceFunctionType -> {
+        val source = sampleMesh(value as DistanceFunction) { Vector4(1f, 0f, 0f, 1f) }
+        panel.meshSource = source
+      }
+      modelFunctionType -> {
+        val distanceColor = value as ModelFunction
+        val source = sampleMesh(distanceColor.distance, distanceColor.color)
+        panel.meshSource = source
+      }
+      else -> throw Error("Unsupported fathom preview type: ${state.type}")
+    }
     rebuildPreview(panel)
   }
 }

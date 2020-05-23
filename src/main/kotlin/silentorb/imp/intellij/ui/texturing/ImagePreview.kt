@@ -24,8 +24,6 @@ import java.awt.Color
 import java.awt.Dimension
 import java.awt.GridLayout
 import java.awt.Image
-import java.awt.event.ComponentEvent
-import java.awt.event.ComponentListener
 import java.awt.image.BufferedImage
 import java.util.concurrent.locks.ReentrantLock
 import javax.swing.*
@@ -185,7 +183,7 @@ fun updateImagePreview(state: PreviewState, container: ImagePreviewPanel) {
       val sampleWriter = if (type == rgbSampler2dType)
         newRgbSampleWriter(value as RgbSampler)
       else
-        newFloatSampleWriter(value as FloatSampler)
+        newFloatSampleWriter(value as FloatSampler2d)
 
       val image = newBufferedImage(cellDimensions, sampleWriter.depth)
       samplerToBufferedImage(sampleWriter, image, dimensions,

@@ -8,10 +8,19 @@ import silentorb.mythic.spatial.Vector2i
 
 val impCode = """
 import silentorb.mythic.fathom.*
-let output = sphere 1.5
+
+let distance = cube (Vector3 2.0 2.0 2.0)
+
+let color = noise
+    scale = 63
+    detail = 78
+    variation = 1
+    . colorize (RgbColor 12 68 20) (RgbColor 0 0 0)
+
+let output = newModel distance color
 """.trimIndent()
 
-object SubstanceLab {
+object FathomLab {
   @JvmStatic
   fun main(args: Array<String>) {
     val languageService = ImpLanguageService()
