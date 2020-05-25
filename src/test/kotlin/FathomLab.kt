@@ -8,17 +8,14 @@ import silentorb.mythic.spatial.Vector2i
 
 val impCode = """
 import silentorb.mythic.fathom.*
-import silentorb.mythic.generation.texturing.RgbColor
 
-let distance = cube (Vector3 2.0 2.0 2.0)
-
-let color = noise
+let bump = noise
     scale = 63
     detail = 78
     variation = 1
-    . colorize (RgbColor 12 68 20) (RgbColor 0 0 0)
 
-let output = newModel distance color
+let output = cube (Vector3 2.0 2.0 2.0)
+    . - bump
 """.trimIndent()
 
 object FathomLab {

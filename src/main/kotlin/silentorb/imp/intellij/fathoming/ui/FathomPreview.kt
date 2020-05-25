@@ -17,8 +17,8 @@ import silentorb.imp.intellij.ui.preview.PreviewState
 import silentorb.imp.intellij.ui.texturing.newImageElement
 import silentorb.mythic.imaging.fathoming.ModelFunction
 import silentorb.mythic.imaging.fathoming.DistanceFunction
+import silentorb.mythic.imaging.fathoming.floatSampler3dType
 import silentorb.mythic.imaging.fathoming.modelFunctionType
-import silentorb.mythic.imaging.fathoming.distanceFunctionType
 import silentorb.mythic.imaging.fathoming.sampling.SamplePoint
 import silentorb.mythic.spatial.Vector2i
 import silentorb.mythic.spatial.Vector3
@@ -136,11 +136,11 @@ fun rebuildPreviewSource(state: PreviewState, panel: SubstancePreviewPanel) {
   val value = executeGraph(functions, state.graph, state.node)
   if (value != null) {
     when (state.type) {
-      distanceFunctionType -> {
+      floatSampler3dType.hash -> {
         val source = sampleMesh(value as DistanceFunction) { Vector3(1f, 0f, 0f) }
         panel.meshSource = source
       }
-      modelFunctionType -> {
+      modelFunctionType.hash -> {
         val distanceColor = value as ModelFunction
         val source = sampleMesh(distanceColor.distance, distanceColor.color)
         panel.meshSource = source

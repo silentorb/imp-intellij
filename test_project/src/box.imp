@@ -1,5 +1,11 @@
 import silentorb.mythic.fathom.*
 
+let bump = noise
+    scale = 73
+    detail = 27
+    variation = 112
+
 let output = cube (Vector3 2.0 2.0 2.0)
-    . rotate (rotationFromAxis 0.0 0.0 45.0)
+    . deform (* bump 0.3)
+--    . rotate (rotationFromAxis 0.0 0.0 45.0)
 --    . translate (Vector3 1.4 0.0 0.11)

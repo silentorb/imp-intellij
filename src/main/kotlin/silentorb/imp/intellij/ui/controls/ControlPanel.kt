@@ -16,7 +16,6 @@ import silentorb.imp.intellij.ui.misc.getPsiElement
 import silentorb.imp.parsing.general.Range
 import silentorb.imp.parsing.parser.Dungeon
 import silentorb.imp.parsing.parser.parseText
-import silentorb.mythic.imaging.texturing.rgbColorKey
 import silentorb.mythic.imaging.texturing.rgbColorType
 import java.awt.Dimension
 import javax.swing.*
@@ -88,21 +87,22 @@ data class ControlField(
 
 typealias ComplexTypeControl = (ChangePsiValue, List<PsiElementWrapper>, List<Any>) -> JComponent
 
-private val complexTypeControls = mapOf<TypeHash, ComplexTypeControl>(
+private val complexTypeControls: Map<TypeHash, ComplexTypeControl> = mapOf(
     rgbColorType to ::newColorPicker
 )
+    .mapKeys { it.key.hash }
 
 fun newFieldControl(getPsiElement: GetPsiValue, context: Context, dungeon: Dungeon, node: PathKey): ControlField? {
   val graph = dungeon.graph
-  val functionType = graph.implementationTypes[node]
-  val complexTypeControl = complexTypeControls[functionType]
-  val type = graph.implementationTypes[node]
-      ?: if (complexTypeControl != null)
-        functionType
-      else
-        null
+  val type = graph.nodeTypes[node]
+  val complexTypeControl = complexTypeControls[type]
+//  val type = graph.implementationTypes[node]
+//      ?: if (complexTypeControl != null)
+//        functionType
+//      else
+//        null
 
-  val connections = graph.connections.filter { it.destination == node }
+  val connections = graph.connections.filter { it.source == node }
   val parameters = connections
 //      .flatMap { match ->
 //    match.alignment.filter { it.value == node }.keys

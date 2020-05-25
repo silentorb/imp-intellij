@@ -107,7 +107,8 @@ fun sampleMesh(getDistance: DistanceFunction, getColor: RgbColorFunction): List<
   val config = SamplingConfig(
       getDistance = getDistance,
       getColor = getColor,
-      resolution = 20
+      resolution = 20,
+      pointSize = 8f
   )
 
   val bounds = getSceneGridBounds(getDistance, 1f)

@@ -14,7 +14,7 @@ class ImpFileType private constructor() : LanguageFileType(ImpLanguage.INSTANCE)
   }
 
   override fun getDefaultExtension(): String {
-    return "Imp"
+    return "imp"
   }
 
   override fun getIcon(): Icon? {

@@ -172,9 +172,8 @@ fun updatePreview(preview: PreviewContainer, graph: Graph, type: TypeHash, times
         Disposer.register(preview, component)
       }
     } else {
-//      val typeName = type.path + "." + type.name
-      replacePanelContents(preview, messagePanel("No preview for type"))
-//      preview.setContent(messagePanel("No preview for type of $typeName"))
+      val typeName = graph.typeNames[type] ?: "???"
+      replacePanelContents(preview, messagePanel("No preview for type $typeName"))
     }
   }
   val state = updatePreviewState(type, graph, timestamp, preview, node)

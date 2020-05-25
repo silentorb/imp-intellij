@@ -59,7 +59,7 @@ class ActiveDocumentWatcher(val project: Project, val onChange: OnActiveFileChan
       null
 
     if (newValue != null)
-    setFile(newValue)
+      setFile(newValue)
 
     firstRun = false
   }

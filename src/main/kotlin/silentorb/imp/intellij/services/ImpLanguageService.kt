@@ -20,9 +20,9 @@ import java.util.*
 
 val scaleLengthKey = PathKey("silentorb.mythic.injected", "scaleLength")
 val scaleLengthType = scaleLengthKey.hashCode()
-val scaleLengthSignature = Signature(
+val scaleLengthSignature = CompleteSignature(
     parameters = listOf(
-        Parameter("length", intType)
+        CompleteParameter("length", intType)
     ),
     output = intType
 )

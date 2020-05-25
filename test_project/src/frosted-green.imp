@@ -2,22 +2,8 @@ import silentorb.mythic.generation.texturing.*
 import silentorb.mythic.generation.drawing.*
 import silentorb.mythic.math.*
 
-let background = noise
-    scale = 63
-    detail = 78
+let output = noise
+    scale = 54
+    detail = 44
     variation = 1
     . colorize (RgbColor 12 68 20) (RgbColor 0 0 0)
-
-let foreground = noise
-    scale = 37
-    detail = 41
-    variation = 106
-    . colorize (RgbColor 62 237 45) (RgbColor 0 0 0)
-
-let output = mask foreground background (checkers 3 3)
-    . distort
-        scale = 1
-        detail = 75
-        variation = 18
-        strength = 19
---     . gaussianBlur 13

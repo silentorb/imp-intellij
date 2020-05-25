@@ -3,6 +3,8 @@ package silentorb.imp.intellij.ui.misc
 import com.intellij.openapi.command.WriteCommandAction
 import com.intellij.openapi.editor.Document
 import com.intellij.openapi.fileEditor.FileDocumentManager
+import com.intellij.openapi.fileTypes.FileNameMatcher
+import com.intellij.openapi.fileTypes.FileTypeManager
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.psi.PsiDocumentManager
@@ -13,6 +15,7 @@ import com.intellij.psi.impl.PsiFileFactoryImpl
 import com.intellij.psi.util.elementType
 import silentorb.imp.core.PathKey
 import silentorb.imp.intellij.language.ImpLanguage
+import silentorb.imp.intellij.misc.ImpFileType
 import silentorb.imp.intellij.services.getImpLanguageService
 import silentorb.imp.intellij.services.initialContext
 import silentorb.imp.intellij.ui.controls.PsiElementWrapper
@@ -64,7 +67,7 @@ fun watchParsed(project: Project, onChange: (Dungeon?, Document?, ParsingErrors)
   return { file ->
     if (file !== lastFile) {
       lastFile = file
-      if (file == null) {
+      if (file == null || !file.fileType.equals(ImpFileType.INSTANCE)) {
         onChange(null, null, listOf())
       } else {
         // Todo: Somehow get shared/cached dungeon from ImpParser

@@ -180,7 +180,7 @@ fun updateImagePreview(state: PreviewState, container: ImagePreviewPanel) {
       if (value == null)
         break
 
-      val sampleWriter = if (type == rgbSampler2dType)
+      val sampleWriter = if (type == rgbSampler2dType.hash)
         newRgbSampleWriter(value as RgbSampler)
       else
         newFloatSampleWriter(value as FloatSampler2d)

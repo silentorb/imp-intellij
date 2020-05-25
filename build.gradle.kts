@@ -23,7 +23,6 @@ dependencies {
     implementation("silentorb.mythic:desktop")
 }
 
-// See https://github.com/JetBrains/gradle-intellij-plugin/
 intellij {
     version = "2019.3.1"
 }

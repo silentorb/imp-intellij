@@ -96,15 +96,12 @@ fun createScene(cameraState: CameraState) =
             Light(
                 type = LightType.point,
                 color = Vector4(1f),
-                offset = Vector3(0f, 5f, 10f),
+                offset = Vector3(0f, 5f, -10f),
                 range = 20f
             )
         ),
         lightingConfig = LightingConfig(ambient = 0.3f)
     )
-
-fun getNearPlaneHeight(viewport: Vector4i, fov: Float): Float =
-    abs(viewport.w - viewport.y).toFloat() / (2f * tan(0.5f * radiansToDegrees(fov)))
 
 fun renderMesh(vertices: FloatArray, dimensions: Vector2i, cameraState: CameraState): BufferedImage {
   val scene = createScene(cameraState)
@@ -116,7 +113,6 @@ fun renderMesh(vertices: FloatArray, dimensions: Vector2i, cameraState: CameraSt
       count = vertices.size / vertexSchema.floatSize,
       primitiveType = PrimitiveType.points
   )
-  println(vertices.size / 3)
   try {
     val renderer = initialRenderer
     val windowInfo = WindowInfo(dimensions = dimensions)
@@ -141,7 +137,6 @@ fun renderMesh(vertices: FloatArray, dimensions: Vector2i, cameraState: CameraSt
       ))
 
       val config = ObjectShaderConfig(
-//          color = Vector4(1f, 0f, 0f, 1f),
           nearPlaneHeight = getNearPlaneHeight(viewport, scene.camera.angleOrZoom)
       )
 
