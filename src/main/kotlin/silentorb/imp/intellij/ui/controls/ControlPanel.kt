@@ -16,7 +16,7 @@ import silentorb.imp.intellij.ui.misc.getPsiElement
 import silentorb.imp.parsing.general.Range
 import silentorb.imp.parsing.parser.Dungeon
 import silentorb.imp.parsing.parser.parseText
-import silentorb.mythic.imaging.texturing.rgbColorType
+import silentorb.mythic.imaging.texturing.newRgbTypeHash
 import java.awt.Dimension
 import javax.swing.*
 
@@ -88,13 +88,11 @@ data class ControlField(
 typealias ComplexTypeControl = (ChangePsiValue, List<PsiElementWrapper>, List<Any>) -> JComponent
 
 private val complexTypeControls: Map<TypeHash, ComplexTypeControl> = mapOf(
-    rgbColorType to ::newColorPicker
+    newRgbTypeHash to ::newColorPicker
 )
-    .mapKeys { it.key.hash }
 
-fun newFieldControl(getPsiElement: GetPsiValue, context: Context, dungeon: Dungeon, node: PathKey): ControlField? {
+fun newFieldControl(getPsiElement: GetPsiValue, context: Context, dungeon: Dungeon, node: PathKey, type: TypeHash?): ControlField? {
   val graph = dungeon.graph
-  val type = graph.nodeTypes[node]
   val complexTypeControl = complexTypeControls[type]
 //  val type = graph.implementationTypes[node]
 //      ?: if (complexTypeControl != null)
@@ -138,15 +136,15 @@ fun newFieldControl(getPsiElement: GetPsiValue, context: Context, dungeon: Dunge
 
 fun gatherControlFields(getPsiElement: GetPsiValue, context: Context, dungeon: Dungeon, node: PathKey): List<ControlField> {
   val graph = dungeon.graph
-  val function = graph.implementationTypes[node]
-  return if (function != null && !complexTypeControls.containsKey(function)) {
+  val functionType = graph.implementationTypes[node]
+  return if (functionType != null && !complexTypeControls.containsKey(functionType)) {
 
     val connections = graph.connections.filter { it.destination == node }
     connections.mapNotNull { connection ->
-      newFieldControl(getPsiElement, context, dungeon, connection.source)
+      newFieldControl(getPsiElement, context, dungeon, connection.source, graph.nodeTypes[node])
     }
   } else {
-    listOfNotNull(newFieldControl(getPsiElement, context, dungeon, node))
+    listOfNotNull(newFieldControl(getPsiElement, context, dungeon, node, functionType))
   }
 }
 

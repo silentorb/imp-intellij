@@ -42,14 +42,17 @@ fun defaultCameraState() =
         distance = 5f
     )
 
+private var currentGraphHash: Int? = null
+private val vertexLock = ReentrantLock()
+
 class SubstancePreviewPanel : SimpleToolWindowPanel(true), Disposable {
   var cameraState: CameraState = defaultCameraState()
   var previousState: CameraState = cameraState
   var previewState: PreviewState? = null
   var startedDrawing: Boolean = false
 
-  //  var meshSource: List<SamplePoint>? = null
   var vertices: FloatArray? = null
+  var verticesChanged: Boolean = false
   var previousDisplayMode = getDisplayMode()
   val updateTimer = Timer(33) { event ->
     checkUpdate()
@@ -62,14 +65,15 @@ class SubstancePreviewPanel : SimpleToolWindowPanel(true), Disposable {
   }
 
   fun checkUpdate() {
-    val currentDisplayMode = getDisplayMode()
-    if (currentDisplayMode != previousDisplayMode) {
-      previousDisplayMode = currentDisplayMode
-      vertices = null
-      rebuildPreview(this)
-    } else if (cameraState != previousState) {
+    vertexLock.lock()
+    val localVertices = vertices
+    val localVerticesChanged = verticesChanged
+    verticesChanged = false
+    vertexLock.unlock()
+
+    if (cameraState != previousState || localVerticesChanged) {
       previousState = cameraState
-      updateMeshDisplay(this)
+      updateMeshDisplay(this, localVertices)
     }
   }
 
@@ -90,12 +94,11 @@ fun updateMeshDisplay(vertices: FloatArray, dimensions: Vector2i, panel: Substan
 fun getPanelDimensions(panel: JComponent) =
     Vector2i(panel.width, panel.width)
 
-fun updateMeshDisplay(panel: SubstancePreviewPanel) {
+fun updateMeshDisplay(panel: SubstancePreviewPanel, vertices: FloatArray?) {
   val state = panel.previewState
-  val mesh = panel.vertices
-  if (state != null && mesh != null) {
+  if (state != null && vertices != null) {
     val dimensions = getPanelDimensions(panel)
-    updateMeshDisplay(mesh, dimensions, panel)
+    updateMeshDisplay(vertices, dimensions, panel)
   }
 }
 
@@ -112,9 +115,6 @@ fun rebuildPreview(panel: SubstancePreviewPanel) {
     updateMeshDisplay(vertices, dimensions, panel)
   }
 }
-
-private var currentGraphHash: Int? = null
-private val vertexLock = ReentrantLock()
 
 fun sampleMesh(hash: Int, panel: SubstancePreviewPanel, getDistance: DistanceFunction, getColor: RgbColorFunction) {
   println("Generating $hash")
@@ -146,18 +146,14 @@ fun sampleMesh(hash: Int, panel: SubstancePreviewPanel, getDistance: DistanceFun
       }
       val points = sampler(step)
       vertices += flattenSamplePoints(points)
-    }
-    vertexLock.lock()
-    if (currentGraphHash != hash) {
-      vertexLock.unlock()
-    }
-    else {
-      println("Updating vertices $hash")
-      SwingUtilities.invokeLater {
+      vertexLock.lock()
+      if (currentGraphHash != hash) {
+        vertexLock.unlock()
+      } else {
         panel.vertices = vertices
-        rebuildPreview(panel)
+        panel.verticesChanged = true
+        vertexLock.unlock()
       }
-      vertexLock.unlock()
     }
   }
 }
@@ -183,14 +179,14 @@ fun rebuildPreviewSource(state: PreviewState, panel: SubstancePreviewPanel) {
 }
 
 fun newSubstancePreview(props: NewPreviewProps): PreviewDisplay {
-  val container = SubstancePreviewPanel()
-  container.background = Color.red
+  val panel = SubstancePreviewPanel()
+  panel.background = Color.red
   val placeholder = JPanel()
   placeholder.background = Color.blue
-  container.setContent(placeholder)
-  container.addComponentListener(resizeListener(container) {
-    if (container.startedDrawing) {
-      updateMeshDisplay(container)
+  panel.setContent(placeholder)
+  panel.addComponentListener(resizeListener(panel) {
+    if (panel.startedDrawing) {
+      updateMeshDisplay(panel, panel.vertices)
     }
   })
 
@@ -199,13 +195,13 @@ fun newSubstancePreview(props: NewPreviewProps): PreviewDisplay {
   actionGroup.add(DisplayModeAction())
   val actionToolbar = actionManager.createActionToolbar("ACTION_GROUP", actionGroup, true)
   actionToolbar.component.preferredSize = Dimension(0, 40)
-  container.toolbar = actionToolbar.component
+  panel.toolbar = actionToolbar.component
 
   return PreviewDisplay(
-      content = container,
+      content = panel,
       update = { state ->
-        container.previewState = state
-        rebuildPreviewSource(state, container)
+        panel.previewState = state
+        rebuildPreviewSource(state, panel)
       }
   )
 }

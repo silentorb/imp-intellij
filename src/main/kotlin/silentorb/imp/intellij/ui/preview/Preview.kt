@@ -96,7 +96,7 @@ class PreviewContainer(project: Project, contentManager: ContentManager) : JPane
       }
     })
 
-    val timer = TimerUtil.createNamedTimer("ActiveDocumentWatcher", 500) {
+    val timer = TimerUtil.createNamedTimer("ActiveDocumentWatcher", 66) {
       val document = nextUpdatedDocument
       val updatedTime = nextUpdatedTime
       if (document != null && updatedTime != null && System.currentTimeMillis() > updatedTime + 1000) {

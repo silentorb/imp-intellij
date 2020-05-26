@@ -12,7 +12,7 @@ let color = noise
     scale = 63
     detail = 78
     variation = 1
-    . colorize (RgbColor 255 32 25) (RgbColor 30 50 0)
+    . colorize (RgbColor 255 32 27) (RgbColor 30 50 0)
 
 let surface = deform distance (bump .* 0.5)
 
