@@ -7,10 +7,10 @@ import com.intellij.openapi.editor.Document
 import com.intellij.openapi.editor.event.DocumentEvent
 import com.intellij.openapi.editor.event.DocumentListener
 import com.intellij.openapi.project.Project
-import com.intellij.openapi.ui.SimpleToolWindowPanel
 import com.intellij.openapi.util.Disposer
 import com.intellij.ui.content.ContentManager
 import com.intellij.util.messages.MessageBusConnection
+import com.intellij.util.ui.TimerUtil
 import silentorb.imp.core.Graph
 import silentorb.imp.core.PathKey
 import silentorb.imp.core.TypeHash
@@ -56,13 +56,13 @@ class PreviewContainer(project: Project, contentManager: ContentManager) : JPane
   var lastDungeon: Dungeon? = null
   var lastErrors: ParsingErrors = listOf()
   var state: PreviewState? = null
+  var nextUpdatedDocument: Document? = null
+  var nextUpdatedTime: Long? = null
+
   val documentListener: DocumentListener = object : DocumentListener {
     override fun documentChanged(event: DocumentEvent) {
-      val response = getDungeonAndErrors(project, event.document)
-      if (response != null) {
-        val (dungeon, errors) = response
-        update(dungeon, errors)
-      }
+      nextUpdatedDocument = event.document
+      nextUpdatedTime = System.currentTimeMillis()
     }
   }
   val activeDocumentWatcher = ActiveDocumentWatcher(project, watchParsed(project) { dungeon, document, errors ->
@@ -74,6 +74,7 @@ class PreviewContainer(project: Project, contentManager: ContentManager) : JPane
         document.addDocumentListener(documentListener)
       }
       previousDocument = document
+      println("Active document changed")
       update(dungeon, errors)
     }
 
@@ -94,6 +95,28 @@ class PreviewContainer(project: Project, contentManager: ContentManager) : JPane
         }
       }
     })
+
+    val timer = TimerUtil.createNamedTimer("ActiveDocumentWatcher", 500) {
+      val document = nextUpdatedDocument
+      val updatedTime = nextUpdatedTime
+      if (document != null && updatedTime != null && System.currentTimeMillis() > updatedTime + 1000) {
+        nextUpdatedDocument = null
+        nextUpdatedTime = null
+        val response = getDungeonAndErrors(project, document)
+        if (response != null) {
+          val (dungeon, errors) = response
+          println("Active document contents changed ${dungeon.graph.hashCode()}")
+          update(dungeon, errors)
+        }
+      }
+    }
+
+    Disposer.register(this, Disposable {
+      timer.stop()
+    })
+
+    timer.start()
+    Disposer.register(contentManager, this)
   }
 
   fun update(dungeon: Dungeon?, errors: ParsingErrors) {
@@ -172,7 +195,7 @@ fun updatePreview(preview: PreviewContainer, graph: Graph, type: TypeHash, times
         Disposer.register(preview, component)
       }
     } else {
-      val typeName = graph.typeNames[type] ?: "???"
+      val typeName = graph.typings.typeNames[type] ?: "???"
       replacePanelContents(preview, messagePanel("No preview for type $typeName"))
     }
   }

@@ -103,20 +103,6 @@ data class MeshSource(
     val faces: List<VertexFace>
 )
 
-fun sampleMesh(getDistance: DistanceFunction, getColor: RgbColorFunction): List<SamplePoint> {
-  val config = SamplingConfig(
-      getDistance = getDistance,
-      getColor = getColor,
-      resolution = 20,
-      pointSize = 8f
-  )
-
-  val bounds = getSceneGridBounds(getDistance, 1f)
-      .pad(1)
-
-  return sampleFunction(config, bounds)
-}
-
 fun generateWireframeMesh(mesh: MeshSource): FloatArray {
   return mesh.edges
       .flatMap(::vertexList)

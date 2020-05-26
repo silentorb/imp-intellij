@@ -18,30 +18,13 @@ typealias StaleCheck = (Project, VirtualFile) -> Boolean
 
 class ActiveDocumentWatcher(val project: Project, val onChange: OnActiveFileChange) : Disposable {
   var firstRun = true
-//  var currentFile: VirtualFile? = null
 
   fun checkUpdate() {
     if (project.isDisposed)
       return
 
     val owner = KeyboardFocusManager.getCurrentKeyboardFocusManager().focusOwner
-//    val isInsideComponent = SwingUtilities.isDescendingFrom(component, owner)
-
-//    if (!firstRun && (isInsideComponent || JBPopupFactory.getInstance().isPopupActive))
-//      return
-
     val dataContext = DataManager.getInstance().getDataContext(owner)
-
-//    if (CommonDataKeys.PROJECT.getData(dataContext) !== project) {
-//      setFile(null)
-//      return
-//    }
-
-//    val files = if (isInsideComponent)
-//      null
-//    else
-//      CommonDataKeys.VIRTUAL_FILE_ARRAY.getData(dataContext)
-
     val files = CommonDataKeys.VIRTUAL_FILE_ARRAY.getData(dataContext)
 
     val newValue = if (files != null && files.size == 1) {
@@ -65,11 +48,7 @@ class ActiveDocumentWatcher(val project: Project, val onChange: OnActiveFileChan
   }
 
   fun setFile(file: VirtualFile?) {
-//    if (file !== currentFile || (additionalCheck != null && file != null && additionalCheck(project, file))) {
-//      currentFile = file
-//      println("file changed ${file?.name ?: "none"}")
       onChange(file)
-//    }
   }
 
   fun start(contentManager: ContentManager) {

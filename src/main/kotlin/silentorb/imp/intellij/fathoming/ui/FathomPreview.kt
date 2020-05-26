@@ -4,9 +4,6 @@ import com.intellij.openapi.Disposable
 import com.intellij.openapi.actionSystem.ActionManager
 import com.intellij.openapi.actionSystem.DefaultActionGroup
 import com.intellij.openapi.ui.SimpleToolWindowPanel
-import silentorb.imp.core.Graph
-import silentorb.imp.core.PathKey
-import silentorb.imp.execution.FunctionImplementationMap
 import silentorb.imp.intellij.fathoming.actions.DisplayModeAction
 import silentorb.imp.intellij.fathoming.state.getDisplayMode
 import silentorb.imp.intellij.services.initialFunctions
@@ -15,22 +12,22 @@ import silentorb.imp.intellij.ui.preview.NewPreviewProps
 import silentorb.imp.intellij.ui.preview.PreviewDisplay
 import silentorb.imp.intellij.ui.preview.PreviewState
 import silentorb.imp.intellij.ui.texturing.newImageElement
-import silentorb.mythic.imaging.fathoming.ModelFunction
-import silentorb.mythic.imaging.fathoming.DistanceFunction
-import silentorb.mythic.imaging.fathoming.floatSampler3dType
-import silentorb.mythic.imaging.fathoming.modelFunctionType
+import silentorb.mythic.imaging.fathoming.*
 import silentorb.mythic.imaging.fathoming.sampling.SamplePoint
+import silentorb.mythic.imaging.fathoming.sampling.SamplingConfig
+import silentorb.mythic.imaging.fathoming.sampling.sampleCells
+import silentorb.mythic.imaging.fathoming.surfacing.getSceneGridBounds
 import silentorb.mythic.spatial.Vector2i
 import silentorb.mythic.spatial.Vector3
-import silentorb.mythic.spatial.Vector4
 import silentorb.mythic.spatial.toList
 import java.awt.Color
 import java.awt.Dimension
-import java.awt.image.BufferedImage
+import java.util.concurrent.locks.ReentrantLock
 import javax.swing.JComponent
 import javax.swing.JPanel
 import javax.swing.SwingUtilities
 import javax.swing.Timer
+import kotlin.concurrent.thread
 
 data class CameraState(
     val yaw: Float,
@@ -45,18 +42,13 @@ fun defaultCameraState() =
         distance = 5f
     )
 
-fun renderSubstance(functions: FunctionImplementationMap, graph: Graph, node: PathKey?, dimensions: Vector2i, cameraState: CameraState): BufferedImage? {
-  val value = executeGraph(functions, graph, node)!!
-  val vertices = flattenSamplePoints(sampleMesh(value as DistanceFunction) { Vector3(1f, 0f, 0f) })
-  return renderMesh(vertices, dimensions, cameraState)
-}
-
 class SubstancePreviewPanel : SimpleToolWindowPanel(true), Disposable {
   var cameraState: CameraState = defaultCameraState()
   var previousState: CameraState = cameraState
   var previewState: PreviewState? = null
   var startedDrawing: Boolean = false
-  var meshSource: List<SamplePoint>? = null
+
+  //  var meshSource: List<SamplePoint>? = null
   var vertices: FloatArray? = null
   var previousDisplayMode = getDisplayMode()
   val updateTimer = Timer(33) { event ->
@@ -115,39 +107,78 @@ fun flattenSamplePoints(points: List<SamplePoint>) =
 fun rebuildPreview(panel: SubstancePreviewPanel) {
   val dimensions = getPanelDimensions(panel)
   panel.startedDrawing = true
-  val meshSource = panel.meshSource
-  if (meshSource != null) {
-//    val vertices = if (getDisplayMode() == DisplayMode.shaded)
-//      generateShadedMesh(meshSource)
-//    else
-//      generateWireframeMesh(meshSource)
-    val vertices = meshSource
-        .flatMap { toList(it.location) + toList(it.normal) + listOf(it.size) + toList(it.color) }
-        .toFloatArray()
-
-    panel.vertices = vertices
+  val vertices = panel.vertices
+  if (vertices != null) {
     updateMeshDisplay(vertices, dimensions, panel)
+  }
+}
+
+private var currentGraphHash: Int? = null
+private val vertexLock = ReentrantLock()
+
+fun sampleMesh(hash: Int, panel: SubstancePreviewPanel, getDistance: DistanceFunction, getColor: RgbColorFunction) {
+  println("Generating $hash")
+  if (hash == currentGraphHash) {
+    println("Stopping $hash A")
+    return
+  }
+  vertexLock.lock()
+  currentGraphHash = hash
+  vertexLock.unlock()
+
+  thread(start = true) {
+    val config = SamplingConfig(
+        getDistance = getDistance,
+        getColor = getColor,
+        resolution = 20,
+        pointSize = 8f
+    )
+
+    val bounds = getSceneGridBounds(getDistance, 1f)
+        .pad(1)
+
+    val (stepCount, sampler) = sampleCells(config, bounds)
+    var vertices = FloatArray(0)
+    for (step in (0 until stepCount)) {
+      if (currentGraphHash != hash) {
+        println("Stopping $hash B")
+        break
+      }
+      val points = sampler(step)
+      vertices += flattenSamplePoints(points)
+    }
+    vertexLock.lock()
+    if (currentGraphHash != hash) {
+      vertexLock.unlock()
+    }
+    else {
+      println("Updating vertices $hash")
+      SwingUtilities.invokeLater {
+        panel.vertices = vertices
+        rebuildPreview(panel)
+      }
+      vertexLock.unlock()
+    }
   }
 }
 
 fun rebuildPreviewSource(state: PreviewState, panel: SubstancePreviewPanel) {
   panel.startedDrawing = true
   val functions = initialFunctions()
+  println("Executing graph ${state.graph.hashCode()}")
   val value = executeGraph(functions, state.graph, state.node)
+  println("Finished executing graph ${state.graph.hashCode()}")
   if (value != null) {
     when (state.type) {
       floatSampler3dType.hash -> {
-        val source = sampleMesh(value as DistanceFunction) { Vector3(1f, 0f, 0f) }
-        panel.meshSource = source
+        sampleMesh(state.graph.hashCode(), panel, value as DistanceFunction) { Vector3(1f, 0f, 0f) }
       }
       modelFunctionType.hash -> {
         val distanceColor = value as ModelFunction
-        val source = sampleMesh(distanceColor.distance, distanceColor.color)
-        panel.meshSource = source
+        sampleMesh(state.graph.hashCode(), panel, distanceColor.distance, distanceColor.color)
       }
       else -> throw Error("Unsupported fathom preview type: ${state.type}")
     }
-    rebuildPreview(panel)
   }
 }
 
