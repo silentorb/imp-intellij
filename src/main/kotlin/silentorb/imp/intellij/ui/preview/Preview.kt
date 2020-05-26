@@ -42,6 +42,7 @@ data class PreviewDisplay(
 )
 
 data class PreviewState(
+    val document: Document?,
     val graph: Graph,
     val node: PathKey?,
     val steps: List<PathKey>,
@@ -129,7 +130,7 @@ class PreviewContainer(project: Project, contentManager: ContentManager) : JPane
     else
       null
 
-    update(this, dungeon, errors, node)
+    update(this, document, dungeon, errors, node)
   }
 
   override fun dispose() {
@@ -147,10 +148,10 @@ fun messagePanel(message: String): JPanel {
   return panel
 }
 
-fun newPreview(type: TypeHash, dimensions: Vector2i): PreviewDisplay? {
+fun newPreview(document: Document?, type: TypeHash, dimensions: Vector2i): PreviewDisplay? {
   val display = previewTypes().get(type)
   return if (display != null)
-    display(NewPreviewProps(dimensions))
+    display(NewPreviewProps(dimensions, document))
   else
     null
 }
@@ -158,6 +159,7 @@ fun newPreview(type: TypeHash, dimensions: Vector2i): PreviewDisplay? {
 private val sourceLock = ReentrantLock()
 
 fun updatePreviewState(
+    document: Document?,
     type: TypeHash,
     graph: Graph,
     timestamp: Long,
@@ -167,6 +169,7 @@ fun updatePreviewState(
   val steps = arrangeGraphSequence(graph)
   sourceLock.lock()
   val state = PreviewState(
+      document = document,
       type = type,
       graph = graph,
       node = node,
@@ -178,9 +181,9 @@ fun updatePreviewState(
   return state
 }
 
-fun updatePreview(preview: PreviewContainer, graph: Graph, type: TypeHash, timestamp: Long, node: PathKey?) {
+fun updatePreview(document: Document?, preview: PreviewContainer, graph: Graph, type: TypeHash, timestamp: Long, node: PathKey?) {
   if (type != preview.state?.type) {
-    val newDisplay = newPreview(type, Vector2i(preview.width))
+    val newDisplay = newPreview(document, type, Vector2i(preview.width))
     if (newDisplay != null) {
       replacePanelContents(preview, newDisplay.content)
 //      preview.setContent(newDisplay.content)
@@ -199,7 +202,7 @@ fun updatePreview(preview: PreviewContainer, graph: Graph, type: TypeHash, times
       replacePanelContents(preview, messagePanel("No preview for type $typeName"))
     }
   }
-  val state = updatePreviewState(type, graph, timestamp, preview, node)
+  val state = updatePreviewState(document, type, graph, timestamp, preview, node)
   // The layout of new preview children isn't fully initialized until after this UI tick
   SwingUtilities.invokeLater {
     SwingUtilities.invokeLater {
@@ -232,18 +235,18 @@ fun trySetPreviewTimestamp(timestamp: Long): Boolean {
   }
 }
 
-fun updatePreview(graph: Graph, preview: PreviewContainer, timestamp: Long, node: PathKey?) {
+fun updatePreview(document: Document?, graph: Graph, preview: PreviewContainer, timestamp: Long, node: PathKey?) {
   if (!trySetPreviewTimestamp(timestamp))
     return
 
   val output = node ?: getGraphOutputNode(graph)
   val type = graph.nodeTypes[output]
   if (type != null) {
-    updatePreview(preview, graph, type, timestamp, node)
+    updatePreview(document, preview, graph, type, timestamp, node)
   }
 }
 
-fun update(container: PreviewContainer, dungeon: Dungeon?, errors: ParsingErrors, node: PathKey?) {
+fun update(container: PreviewContainer, document: Document?, dungeon: Dungeon?, errors: ParsingErrors, node: PathKey?) {
   if (dungeon == null) {
     container.state = null
     container.display = null
@@ -259,6 +262,6 @@ fun update(container: PreviewContainer, dungeon: Dungeon?, errors: ParsingErrors
     container.revalidate()
     container.repaint()
   } else {
-    updatePreview(dungeon.graph, container, System.currentTimeMillis(), node)
+    updatePreview(document, dungeon.graph, container, System.currentTimeMillis(), node)
   }
 }

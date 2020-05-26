@@ -1,6 +1,5 @@
 import org.lwjgl.glfw.GLFW
 import silentorb.imp.intellij.services.ImpLanguageService
-import silentorb.imp.intellij.fathoming.ui.defaultCameraState
 import silentorb.imp.intellij.fathoming.ui.hiddenWindow
 import silentorb.imp.parsing.parser.parseText
 import silentorb.mythic.spatial.Vector2i
@@ -39,7 +38,7 @@ object FathomLab {
 
     val graph = dungeon.graph
     val dimensions = Vector2i(400, 400)
-    val cameraState = defaultCameraState()
+//    val cameraState = defaultCameraState()
     while (true) {
       GLFW.glfwPollEvents()
 //      renderSubstance(functions, graph, null, dimensions, cameraState)

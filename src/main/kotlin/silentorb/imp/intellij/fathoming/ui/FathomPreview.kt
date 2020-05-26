@@ -5,7 +5,9 @@ import com.intellij.openapi.actionSystem.ActionManager
 import com.intellij.openapi.actionSystem.DefaultActionGroup
 import com.intellij.openapi.ui.SimpleToolWindowPanel
 import silentorb.imp.intellij.fathoming.actions.DisplayModeAction
+import silentorb.imp.intellij.fathoming.state.FathomPreviewState
 import silentorb.imp.intellij.fathoming.state.getDisplayMode
+import silentorb.imp.intellij.fathoming.state.getFathomPreviewStateService
 import silentorb.imp.intellij.services.initialFunctions
 import silentorb.imp.intellij.ui.misc.resizeListener
 import silentorb.imp.intellij.ui.preview.NewPreviewProps
@@ -30,25 +32,11 @@ import javax.swing.SwingUtilities
 import javax.swing.Timer
 import kotlin.concurrent.thread
 
-data class CameraState(
-    val yaw: Float,
-    val pitch: Float,
-    val distance: Float
-)
-
-fun defaultCameraState() =
-    CameraState(
-        yaw = 0f,
-        pitch = 0f,
-        distance = 5f
-    )
-
 private var currentGraphHash: Int? = null
 private val vertexLock = ReentrantLock()
 
 class SubstancePreviewPanel : SimpleToolWindowPanel(true), Disposable {
-  var cameraState: CameraState = defaultCameraState()
-  var previousState: CameraState = cameraState
+  var previousFathomPreviewState: FathomPreviewState? = null
   var previewState: PreviewState? = null
   var startedDrawing: Boolean = false
 
@@ -60,7 +48,19 @@ class SubstancePreviewPanel : SimpleToolWindowPanel(true), Disposable {
   }
 
   init {
-    initializeCameraUi(this, { cameraState }) { cameraState = it }
+    initializeCameraUi(this, {
+      val document = previewState?.document
+      if (document != null)
+        getFathomPreviewStateService().getState(document).camera
+      else
+        null
+    }) {
+      val document = previewState?.document
+      if (document != null) {
+        val previousState = getFathomPreviewStateService().getState(document)
+        getFathomPreviewStateService().setState(document, previousState.copy(camera = it))
+      }
+    }
     updateTimer.initialDelay = 500
     updateTimer.start()
   }
@@ -72,9 +72,13 @@ class SubstancePreviewPanel : SimpleToolWindowPanel(true), Disposable {
     verticesChanged = false
     vertexLock.unlock()
 
-    if (cameraState != previousState || localVerticesChanged) {
-      previousState = cameraState
-      updateMeshDisplay(this, localVertices)
+    val document = previewState?.document
+    if (document != null && localVertices != null) {
+      val fathomPreviewState = getFathomPreviewStateService().getState(document)
+      if (fathomPreviewState != previousFathomPreviewState || localVerticesChanged) {
+        previousFathomPreviewState = fathomPreviewState
+        updateMeshDisplay(this, localVertices)
+      }
     }
   }
 
@@ -85,10 +89,13 @@ class SubstancePreviewPanel : SimpleToolWindowPanel(true), Disposable {
 }
 
 fun updateMeshDisplay(vertices: FloatArray, dimensions: Vector2i, panel: SubstancePreviewPanel) {
-  val image = renderMesh(vertices, dimensions, panel.cameraState)
-  SwingUtilities.invokeLater {
-    panel.setContent(newImageElement(image))
+  val document = panel.previewState?.document
+  if (document != null) {
+    val image = renderMesh(vertices, dimensions, getFathomPreviewStateService().getState(document).camera)
+    SwingUtilities.invokeLater {
+      panel.setContent(newImageElement(image))
 //    replacePanelContents(panel, newImageElement(image))
+    }
   }
 }
 

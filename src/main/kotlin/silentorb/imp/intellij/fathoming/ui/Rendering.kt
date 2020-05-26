@@ -2,6 +2,7 @@ package silentorb.imp.intellij.fathoming.ui
 
 import org.lwjgl.BufferUtils
 import org.lwjgl.opengl.GL11
+import silentorb.imp.intellij.fathoming.state.CameraState
 import silentorb.imp.intellij.fathoming.state.DisplayMode
 import silentorb.imp.intellij.fathoming.state.getDisplayMode
 import silentorb.mythic.desktop.createHeadlessWindow

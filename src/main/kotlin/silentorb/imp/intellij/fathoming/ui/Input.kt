@@ -1,5 +1,6 @@
 package silentorb.imp.intellij.fathoming.ui
 
+import silentorb.imp.intellij.fathoming.state.CameraState
 import silentorb.mythic.spatial.Pi
 import java.awt.event.MouseEvent
 import java.awt.event.MouseWheelEvent
@@ -10,7 +11,7 @@ import javax.swing.event.MouseInputAdapter
 fun radial(value: Float): Float =
     (value +  Pi * 2f) % (Pi * 2f)
 
-fun initializeCameraUi(component: JComponent, getState: () -> CameraState, setState: (CameraState) -> Unit) {
+fun initializeCameraUi(component: JComponent, getState: () -> CameraState?, setState: (CameraState) -> Unit) {
   val mouseListener = object : MouseInputAdapter() {
     var lastX: Int? = null
     var lastY: Int? = null
@@ -25,10 +26,12 @@ fun initializeCameraUi(component: JComponent, getState: () -> CameraState, setSt
           val offsetX = event.x - localLastX
           val offsetY = event.y - localLastY
           val state = getState()
-          setState(state.copy(
-              yaw = radial(state.yaw - offsetX.toFloat() * 0.02f),
-              pitch = radial(state.pitch - offsetY.toFloat() * 0.01f)
-          ))
+          if (state != null) {
+            setState(state.copy(
+                yaw = radial(state.yaw - offsetX.toFloat() * 0.02f),
+                pitch = radial(state.pitch - offsetY.toFloat() * 0.01f)
+            ))
+          }
         }
         lastX = event.x
         lastY = event.y
@@ -49,9 +52,11 @@ fun initializeCameraUi(component: JComponent, getState: () -> CameraState, setSt
       if (event != null) {
         val offset = event.wheelRotation
         val state = getState()
-        setState(state.copy(
-            distance = max(0.2f, state.distance + offset.toFloat() * 0.2f)
-        ))
+        if (state != null) {
+          setState(state.copy(
+              distance = max(0.2f, state.distance + offset.toFloat() * 0.2f)
+          ))
+        }
       }
     }
   }
