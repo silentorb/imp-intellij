@@ -12,6 +12,7 @@ import silentorb.imp.intellij.ui.preview.NewPreviewProps
 import silentorb.imp.intellij.ui.preview.PreviewDisplay
 import silentorb.imp.intellij.ui.preview.PreviewState
 import silentorb.imp.intellij.ui.texturing.newImageElement
+import silentorb.mythic.debugging.logExecutionTime
 import silentorb.mythic.imaging.fathoming.*
 import silentorb.mythic.imaging.fathoming.sampling.SamplePoint
 import silentorb.mythic.imaging.fathoming.sampling.SamplingConfig
@@ -161,9 +162,7 @@ fun sampleMesh(hash: Int, panel: SubstancePreviewPanel, getDistance: DistanceFun
 fun rebuildPreviewSource(state: PreviewState, panel: SubstancePreviewPanel) {
   panel.startedDrawing = true
   val functions = initialFunctions()
-  println("Executing graph ${state.graph.hashCode()}")
-  val value = executeGraph(functions, state.graph, state.node)
-  println("Finished executing graph ${state.graph.hashCode()}")
+  val value = logExecutionTime("Graph execution") { executeGraph(functions, state.graph, state.node) }
   if (value != null) {
     when (state.type) {
       floatSampler3dType.hash -> {
