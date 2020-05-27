@@ -126,7 +126,7 @@ fun rebuildPreview(panel: SubstancePreviewPanel) {
 
 fun sampleMesh(hash: Int, panel: SubstancePreviewPanel, getDistance: DistanceFunction, getColor: RgbColorFunction) {
   println("Generating $hash")
-  if (hash == currentGraphHash) {
+  if (hash == currentGraphHash && panel.vertices != null) {
     println("Stopping $hash A")
     return
   }
@@ -172,7 +172,7 @@ fun rebuildPreviewSource(state: PreviewState, panel: SubstancePreviewPanel) {
   val value = logExecutionTime("Graph execution") { executeGraph(functions, state.graph, state.node) }
   if (value != null) {
     when (state.type) {
-      floatSampler3dType.hash -> {
+      distanceFunctionType.hash -> {
         sampleMesh(state.graph.hashCode(), panel, value as DistanceFunction) { Vector3(1f, 0f, 0f) }
       }
       modelFunctionType.hash -> {

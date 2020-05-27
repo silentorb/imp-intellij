@@ -2,9 +2,9 @@ package silentorb.imp.intellij.fathoming.state
 import java.io.Serializable
 
 data class CameraState(
-    val yaw: Float,
-    val pitch: Float,
-    val distance: Float
+    val yaw: Float = 0f,
+    val pitch: Float = 0f,
+    val distance: Float = 5f
 )
 
 fun defaultCameraState() =
@@ -15,7 +15,7 @@ fun defaultCameraState() =
     )
 
 data class FathomPreviewState(
-    val camera: CameraState
+    val camera: CameraState = CameraState()
 ) : Serializable
 
 fun newFathomPreviewState() =
