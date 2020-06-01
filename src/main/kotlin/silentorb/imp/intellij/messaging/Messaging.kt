@@ -3,7 +3,7 @@ package silentorb.imp.intellij.messaging
 import com.intellij.openapi.editor.Document
 import com.intellij.util.messages.Topic
 import silentorb.imp.core.PathKey
-import silentorb.imp.parsing.parser.Dungeon
+import silentorb.imp.core.Dungeon
 
 interface ParsingNotifier {
   fun handle(dungeon: Dungeon)

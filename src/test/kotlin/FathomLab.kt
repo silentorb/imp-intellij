@@ -1,7 +1,7 @@
 import org.lwjgl.glfw.GLFW
 import silentorb.imp.intellij.services.ImpLanguageService
 import silentorb.imp.intellij.fathoming.ui.hiddenWindow
-import silentorb.imp.parsing.parser.parseText
+import silentorb.imp.parsing.parser.parseToDungeon
 import silentorb.mythic.spatial.Vector2i
 
 val impCode = """
@@ -32,7 +32,7 @@ object FathomLab {
     val languageService = ImpLanguageService()
     val context = languageService.context
     val functions = languageService.functions
-    val (dungeon, errors) = parseText(context)(impCode)
+    val (dungeon, errors) = parseToDungeon("", context)(impCode)
     if (errors.any())
       throw Error(errors.first().message.name)
 

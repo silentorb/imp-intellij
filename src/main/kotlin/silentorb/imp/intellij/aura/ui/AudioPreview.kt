@@ -2,9 +2,9 @@ package silentorb.imp.intellij.aura.ui
 
 import com.intellij.openapi.Disposable
 import com.intellij.openapi.ui.SimpleToolWindowPanel
+import silentorb.imp.core.FunctionImplementationMap
 import silentorb.imp.core.Graph
 import silentorb.imp.core.PathKey
-import silentorb.imp.execution.FunctionImplementationMap
 import silentorb.imp.intellij.fathoming.ui.executeGraph
 import silentorb.imp.intellij.services.initialFunctions
 import silentorb.imp.intellij.ui.preview.NewPreviewProps

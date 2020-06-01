@@ -3,8 +3,6 @@ package silentorb.imp.intellij.ui.misc
 import com.intellij.openapi.command.WriteCommandAction
 import com.intellij.openapi.editor.Document
 import com.intellij.openapi.fileEditor.FileDocumentManager
-import com.intellij.openapi.fileTypes.FileNameMatcher
-import com.intellij.openapi.fileTypes.FileTypeManager
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.psi.PsiDocumentManager
@@ -13,31 +11,29 @@ import com.intellij.psi.PsiFile
 import com.intellij.psi.PsiFileFactory
 import com.intellij.psi.impl.PsiFileFactoryImpl
 import com.intellij.psi.util.elementType
+import silentorb.imp.core.Dungeon
+import silentorb.imp.core.NodeMap
 import silentorb.imp.core.PathKey
+import silentorb.imp.core.isInRange
 import silentorb.imp.intellij.language.ImpLanguage
 import silentorb.imp.intellij.misc.ImpFileType
 import silentorb.imp.intellij.services.getImpLanguageService
-import silentorb.imp.intellij.services.initialContext
 import silentorb.imp.intellij.ui.controls.PsiElementWrapper
 import silentorb.imp.parsing.general.ParsingErrors
-import silentorb.imp.parsing.general.PartitionedResponse
-import silentorb.imp.parsing.general.isInRange
-import silentorb.imp.parsing.parser.Dungeon
-import silentorb.imp.parsing.parser.NodeMap
-import silentorb.imp.parsing.parser.parseText
+import silentorb.imp.parsing.general.ParsingResponse
 import java.awt.event.ComponentEvent
 import java.awt.event.ComponentListener
 import javax.swing.JComponent
 import javax.swing.JPanel
 
-fun tryParse(content: CharSequence): PartitionedResponse<Dungeon> {
-  val context = initialContext()
-  return parseText(context)(content)
-//      .map(onSuccess)
-//      .onError { errors ->
-//        messagePanel(formatError(::englishText, errors.first()))
-//      }
-}
+//fun tryParse(content: CharSequence): ParsingResponse<Dungeon> {
+//  val context = initialContext()
+//  return parseToDungeon(context)(content)
+////      .map(onSuccess)
+////      .onError { errors ->
+////        messagePanel(formatError(::englishText, errors.first()))
+////      }
+//}
 
 fun replacePanelContents(panel: JPanel, child: JComponent) {
   panel.removeAll()
@@ -46,7 +42,7 @@ fun replacePanelContents(panel: JPanel, child: JComponent) {
   panel.repaint()
 }
 
-fun getDungeonAndErrors(project: Project, document: Document): PartitionedResponse<Dungeon>? {
+fun getDungeonAndErrors(project: Project, document: Document): ParsingResponse<Dungeon>? {
   val psiFile = PsiDocumentManager.getInstance(project).getPsiFile(document)
   return if (psiFile != null)
     getImpLanguageService().getArtifact(document, psiFile)
@@ -54,7 +50,7 @@ fun getDungeonAndErrors(project: Project, document: Document): PartitionedRespon
     null
 }
 
-fun getDungeonAndErrors(project: Project, file: PsiFile): PartitionedResponse<Dungeon>? {
+fun getDungeonAndErrors(project: Project, file: PsiFile): ParsingResponse<Dungeon>? {
   val document = PsiDocumentManager.getInstance(project).getDocument(file)
   return if (document != null)
     getImpLanguageService().getArtifact(document, file)
@@ -115,7 +111,7 @@ fun changePsiValue(project: Project): (PsiElementWrapper, String) -> Unit = { el
 
 fun findNodeEntry(nodeMap: NodeMap, offset: Int) =
     nodeMap.entries
-        .firstOrNull { (_, range) -> isInRange(range, offset) }
+        .firstOrNull { (_, range) -> isInRange(range.range, offset) }
 
 fun findNode(nodeMap: NodeMap, offset: Int): PathKey? =
     findNodeEntry(nodeMap, offset)?.key

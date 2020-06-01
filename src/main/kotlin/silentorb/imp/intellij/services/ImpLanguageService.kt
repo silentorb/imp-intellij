@@ -3,16 +3,15 @@ package silentorb.imp.intellij.services
 import com.intellij.openapi.components.Service
 import com.intellij.openapi.components.ServiceManager
 import com.intellij.openapi.editor.Document
+import com.intellij.openapi.fileEditor.FileDocumentManager
 import com.intellij.psi.PsiFile
 import silentorb.imp.core.*
 import silentorb.imp.execution.CompleteFunction
-import silentorb.imp.execution.FunctionImplementationMap
 import silentorb.imp.execution.combineLibraries
 import silentorb.imp.execution.newLibrary
-import silentorb.imp.library.implementation.standard.standardLibrary
-import silentorb.imp.parsing.general.PartitionedResponse
-import silentorb.imp.parsing.parser.Dungeon
-import silentorb.imp.parsing.parser.parseText
+import silentorb.imp.library.standard.standardLibrary
+import silentorb.imp.parsing.general.ParsingResponse
+import silentorb.imp.parsing.parser.parseToDungeon
 import silentorb.mythic.aura.generation.imp.auraLibrary
 import silentorb.mythic.imaging.fathoming.fathomLibrary
 import silentorb.mythic.imaging.texturing.texturingLibrary
@@ -37,7 +36,7 @@ fun impLanguageLibrary() =
     ))
 
 data class DungeonArtifact(
-    val response: PartitionedResponse<Dungeon>,
+    val response: ParsingResponse<Dungeon>,
     val timestamp: Long
 )
 
@@ -59,14 +58,15 @@ class ImpLanguageService {
     functions = library.implementation
   }
 
-  fun getArtifact(document: Document, file: PsiFile): PartitionedResponse<Dungeon> {
+  fun getArtifact(document: Document, file: PsiFile): ParsingResponse<Dungeon> {
     val existing = artifacts[file]
     if (existing != null && existing.timestamp == document.modificationStamp)
       return existing.response
 
     // Lock down the timestamp in case it changes while parsing.
     val timestamp = document.modificationStamp
-    val response = parseText(context)(document.text)
+    val actualFile = FileDocumentManager.getInstance().getFile(document)!!
+    val response = parseToDungeon(actualFile.path, context)(document.text)
     val artifact = DungeonArtifact(
         response = response,
         timestamp = timestamp
@@ -86,5 +86,5 @@ fun initialContext() =
 fun initialFunctions() =
     getImpLanguageService().functions
 
-fun getExistingArtifact(file: PsiFile): PartitionedResponse<Dungeon>? =
+fun getExistingArtifact(file: PsiFile): ParsingResponse<Dungeon>? =
     getImpLanguageService().artifacts[file]?.response

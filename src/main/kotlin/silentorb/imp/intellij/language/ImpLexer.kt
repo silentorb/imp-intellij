@@ -3,12 +3,12 @@ package silentorb.imp.intellij.language
 import com.intellij.lexer.Lexer
 import com.intellij.lexer.LexerPosition
 import com.intellij.psi.tree.IElementType
-import silentorb.imp.parsing.general.Position
-import silentorb.imp.parsing.general.Range
+import silentorb.imp.core.Position
+import silentorb.imp.core.newPosition
 import silentorb.imp.parsing.general.Token
-import silentorb.imp.parsing.general.newPosition
 import silentorb.imp.parsing.lexer.Rune
 import silentorb.imp.parsing.lexer.nextToken
+import java.net.URI
 
 class ImpLexerPosition(val value: Int) : LexerPosition {
   override fun getState(): Int {
@@ -20,9 +20,9 @@ class ImpLexerPosition(val value: Int) : LexerPosition {
   }
 }
 
-class ImpLexer : Lexer() {
+class ImpLexer() : Lexer() {
   var buffer: CharSequence? = null
-  var position: Position = newPosition()
+  var position: Position = newPosition("")
   var token: Token? = null
   var deferredToken: Token? = null
 
@@ -47,7 +47,7 @@ class ImpLexer : Lexer() {
   }
 
   override fun start(buffer: CharSequence, startOffset: Int, endOffset: Int, initialState: Int) {
-    this.position = Position(startOffset, 1, 1)
+    this.position = Position(startOffset, "", 1, 1)
     this.buffer = buffer
     advance()
   }
@@ -88,7 +88,7 @@ class ImpLexer : Lexer() {
   }
 
   override fun restore(position: LexerPosition) {
-    this.position = Position(position.offset, 0, 0)
+    this.position = Position(position.offset, "", 0, 0)
     token = null
   }
 }

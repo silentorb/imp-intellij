@@ -169,7 +169,7 @@ fun updateImagePreview(state: PreviewState, container: ImagePreviewPanel) {
         break
       }
       val additionalArguments = mapOf("__globalDimensions" to dimensions)
-      var values: OutputValues = mapOf()
+      var values: OutputValues = graph.values
       val output = state.node ?: getGraphOutputNode(graph)
       for (step in steps) {
         values = executeStep(functions, graph, values, step, additionalArguments)

@@ -1,15 +1,11 @@
 package silentorb.imp.intellij.fathoming.ui
 
+import silentorb.imp.core.FunctionImplementationMap
 import silentorb.imp.core.Graph
 import silentorb.imp.core.PathKey
 import silentorb.imp.core.getGraphOutputNode
-import silentorb.imp.execution.FunctionImplementationMap
 import silentorb.imp.execution.execute
-import silentorb.mythic.imaging.fathoming.RgbColorFunction
 import silentorb.mythic.imaging.fathoming.DistanceFunction
-import silentorb.mythic.imaging.fathoming.sampling.SamplePoint
-import silentorb.mythic.imaging.fathoming.sampling.SamplingConfig
-import silentorb.mythic.imaging.fathoming.sampling.sampleFunction
 import silentorb.mythic.imaging.fathoming.surfacing.*
 import silentorb.mythic.imaging.fathoming.surfacing.old.*
 import silentorb.mythic.imaging.fathoming.surfacing.old.marching.marchingCubes
@@ -65,7 +61,7 @@ fun simplify(vertices: FloatArray): FloatArray {
 
 fun executeGraph(functions: FunctionImplementationMap, graph: Graph, node: PathKey?): Any? {
   val output = node ?: getGraphOutputNode(graph)
-  val values = execute(functions, graph)
+  val values = execute(functions, graph, mapOf())
   return values[output]
 }
 

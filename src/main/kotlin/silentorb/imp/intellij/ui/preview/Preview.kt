@@ -26,7 +26,7 @@ import silentorb.imp.intellij.ui.misc.watchParsed
 import silentorb.imp.parsing.general.ParsingErrors
 import silentorb.imp.parsing.general.englishText
 import silentorb.imp.parsing.general.formatError
-import silentorb.imp.parsing.parser.Dungeon
+import silentorb.imp.core.Dungeon
 import silentorb.mythic.spatial.Vector2i
 import java.awt.GridLayout
 import java.util.concurrent.locks.ReentrantLock
@@ -166,7 +166,7 @@ fun updatePreviewState(
     container: PreviewContainer,
     node: PathKey?
 ): PreviewState {
-  val steps = arrangeGraphSequence(graph)
+  val steps = arrangeGraphSequence(graph, mapOf())
   sourceLock.lock()
   val state = PreviewState(
       document = document,
@@ -240,7 +240,7 @@ fun updatePreview(document: Document?, graph: Graph, preview: PreviewContainer, 
     return
 
   val output = node ?: getGraphOutputNode(graph)
-  val type = graph.nodeTypes[output]
+  val type = graph.returnTypes[output]
   if (type != null) {
     updatePreview(document, preview, graph, type, timestamp, node)
   }

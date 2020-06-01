@@ -7,12 +7,12 @@ import com.intellij.lang.PsiParser
 import com.intellij.psi.tree.IElementType
 import silentorb.imp.intellij.services.initialContext
 import silentorb.imp.parsing.general.englishText
-import silentorb.imp.parsing.parser.parseText
+import silentorb.imp.parsing.parser.parseToDungeon
 
 class ImpParser : PsiParser, LightPsiParser {
   override fun parse(root: IElementType, builder: PsiBuilder): ASTNode {
     val context = initialContext()
-    val (dungeon, errors) = parseText(context)(builder.originalText)
+    val (dungeon, errors) = parseToDungeon("", context)(builder.originalText)
 
     val nodeMap = dungeon.nodeMap
 
@@ -22,10 +22,10 @@ class ImpParser : PsiParser, LightPsiParser {
     while (!builder.eof()) {
       val currentTokenStart = builder.currentOffset
       val node = nodeMap.entries.firstOrNull { (_, value) ->
-        value.start.index == currentTokenStart
+        value.range.start.index == currentTokenStart
       }
       if (!ignoreErrors) {
-        val error = errors.firstOrNull { it.range.start.index == currentTokenStart }
+        val error = errors.firstOrNull { it.fileRange.range.start.index == currentTokenStart }
         if (error != null) {
           builder.error(englishText(error.message))
         }

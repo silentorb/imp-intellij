@@ -13,11 +13,13 @@ import silentorb.imp.intellij.ui.misc.ActiveDocumentWatcher
 import silentorb.imp.intellij.ui.misc.changePsiValue
 import silentorb.imp.intellij.ui.misc.findNodeEntry
 import silentorb.imp.intellij.ui.misc.getPsiElement
-import silentorb.imp.parsing.general.Range
-import silentorb.imp.parsing.parser.Dungeon
-import silentorb.imp.parsing.parser.parseText
+import silentorb.imp.core.Range
+import silentorb.imp.core.Dungeon
+import silentorb.imp.parsing.parser.parseDungeon
+import silentorb.imp.parsing.parser.parseToDungeon
 import silentorb.mythic.imaging.texturing.newRgbTypeHash
 import java.awt.Dimension
+import java.net.URI
 import javax.swing.*
 
 fun getCurrentEditorCaretOffset(project: Project, file: VirtualFile): Int? {
@@ -44,7 +46,7 @@ class ControlPanel(val project: Project, contentManager: ContentManager) : JPane
         if (caretOffset != null) {
           val document = FileDocumentManager.getInstance().getDocument(file)!!
           val context = initialContext()
-          val (dungeon, errors) = parseText(context)(document.text)
+          val (dungeon, errors) = parseToDungeon(file.path, context)(document.text)
           if (errors.none()) {
             updateControlPanel(getPsiElement(project, document), changePsiValue(project), context, this, dungeon, caretOffset, tracker)
           }
@@ -100,7 +102,7 @@ fun newFieldControl(getPsiElement: GetPsiValue, context: Context, dungeon: Dunge
 //      else
 //        null
 
-  val connections = graph.connections.filter { it.source == node }
+  val connections = graph.connections.filter { it.value == node }
   val parameters = connections
 //      .flatMap { match ->
 //    match.alignment.filter { it.value == node }.keys
@@ -108,25 +110,25 @@ fun newFieldControl(getPsiElement: GetPsiValue, context: Context, dungeon: Dunge
   return if (type != null && parameters.any()) {
     val nodes = if (complexTypeControl != null) {
       dungeon.graph.connections
-          .filter { it.destination == node }
-          .map { it.source }
+          .filter { it.key.destination == node }
+          .map { it.value }
     } else
       listOf(node)
 
     val offsets = dungeon.graph.connections
-        .filter { it.destination == node }
-        .map { it.source }
+        .filter { it.key.destination == node }
+        .map { it.value }
         .plus(node)
-        .map { dungeon.nodeMap[it]!!.start.index }
+        .map { dungeon.nodeMap[it]!!.range.start.index }
 
     val psiElements = offsets.map(getPsiElement).filterNotNull()
     if (psiElements.any())
       ControlField(
-          name = parameters.first().parameter,
+          name = parameters.keys.first().parameter,
           nodes = nodes,
           psiElements = psiElements,
           type = type,
-          valueRange = resolveNumericTypeConstraint(context, type)
+          valueRange = resolveNumericTypeConstraint(type)(context)
       )
     else
       null
@@ -139,9 +141,9 @@ fun gatherControlFields(getPsiElement: GetPsiValue, context: Context, dungeon: D
   val functionType = graph.implementationTypes[node]
   return if (functionType != null && !complexTypeControls.containsKey(functionType)) {
 
-    val connections = graph.connections.filter { it.destination == node }
+    val connections = graph.connections.filter { it.key.destination == node }
     connections.mapNotNull { connection ->
-      newFieldControl(getPsiElement, context, dungeon, connection.source, graph.nodeTypes[node])
+      newFieldControl(getPsiElement, context, dungeon, connection.value, graph.returnTypes[node])
     }
   } else {
     listOfNotNull(newFieldControl(getPsiElement, context, dungeon, node, functionType))
@@ -174,7 +176,7 @@ fun updateControlPanel(getPsiElement: GetPsiValue, changePsiValue: ChangePsiValu
   return if (node != null) {
     val newTracker = ControlTracker(
         node = node,
-        range = nodeRange.value
+        range = nodeRange.value.range
     )
     if (tracker != newTracker) {
       controls.removeAll()
