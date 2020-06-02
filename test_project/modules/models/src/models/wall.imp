@@ -1,0 +1,16 @@
+import silentorb.mythic.fathom.*
+import silentorb.mythic.generation.texturing.RgbColor
+import lib.*
+
+let distance = cube (Vector3 3.0 1.0 3.0)
+
+let color = noise
+    scale = 54
+    detail = 77
+    variation = 1
+    . colorize (RgbColor 255 32 228) (RgbColor 30 50 0)
+
+let surface = deform distance (dirtBump .* 0.5)
+
+let main = newModel surface color
+

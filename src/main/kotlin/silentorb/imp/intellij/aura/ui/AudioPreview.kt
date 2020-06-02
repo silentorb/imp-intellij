@@ -10,15 +10,17 @@ import silentorb.imp.intellij.services.initialFunctions
 import silentorb.imp.intellij.ui.preview.NewPreviewProps
 import silentorb.imp.intellij.ui.preview.PreviewDisplay
 import silentorb.imp.intellij.ui.preview.PreviewState
+import silentorb.imp.intellij.ui.preview.getDocumentPath
 import silentorb.mythic.aura.generation.AudioConfig
 import silentorb.mythic.aura.generation.AudioOutput
 import silentorb.mythic.aura.generation.renderAudioTo16bit
 import java.nio.ShortBuffer
+import java.nio.file.Path
 
 const val sampleRate = 44100
 
-fun renderImpAudio(functions: FunctionImplementationMap, graph: Graph, node: PathKey?): Pair<ShortBuffer, Int> {
-  val value = executeGraph(functions, graph, node)!!
+fun renderImpAudio(file: Path, functions: FunctionImplementationMap, graph: Graph, node: PathKey?): Pair<ShortBuffer, Int> {
+  val value = executeGraph(file, functions, graph, node)!!
   val output = value as AudioOutput
   return Pair(renderAudioTo16bit(AudioConfig(sampleRate), output), output.samplers.size)
 }
@@ -31,7 +33,7 @@ class AudioPreviewPanel : SimpleToolWindowPanel(true), Disposable {
 
 fun rebuildAudio(state: PreviewState, panel: AudioPreviewPanel) {
   val functions = initialFunctions()
-  val (buffer, channels) = renderImpAudio(functions, state.graph, state.node)
+  val (buffer, channels) = renderImpAudio(getDocumentPath(state.document!!), functions, state.graph, state.node)
   playSound(buffer, channels, sampleRate)
 }
 

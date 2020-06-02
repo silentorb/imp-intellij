@@ -12,32 +12,32 @@ import silentorb.imp.parsing.parser.parseToDungeon
 class ImpParser : PsiParser, LightPsiParser {
   override fun parse(root: IElementType, builder: PsiBuilder): ASTNode {
     val context = initialContext()
-    val (dungeon, errors) = parseToDungeon("", context)(builder.originalText)
+//    val (dungeon, errors) = parseToDungeon("", context)(builder.originalText)
 
-    val nodeMap = dungeon.nodeMap
+//    val nodeMap = dungeon.nodeMap
 
     val ignoreErrors = runeTokenTypes.containsValue(root)
 
     val documentMarker = builder.mark()
     while (!builder.eof()) {
       val currentTokenStart = builder.currentOffset
-      val node = nodeMap.entries.firstOrNull { (_, value) ->
-        value.range.start.index == currentTokenStart
-      }
+//      val node = nodeMap.entries.firstOrNull { (_, value) ->
+//        value.range.start.index == currentTokenStart
+//      }
       if (!ignoreErrors) {
-        val error = errors.firstOrNull { it.fileRange.range.start.index == currentTokenStart }
-        if (error != null) {
-          builder.error(englishText(error.message))
-        }
+//        val error = errors.firstOrNull { it.fileRange.range.start.index == currentTokenStart }
+//        if (error != null) {
+//          builder.error(englishText(error.message))
+//        }
       }
       val tokenType = builder.tokenType!!
       val marker = builder.mark()
       builder.advanceLexer()
-      if (node != null) {
+//      if (node != null) {
         marker.done(tokenType)
-      } else {
-        marker.done(tokenType)
-      }
+//      } else {
+//        marker.done(tokenType)
+//      }
     }
     documentMarker.done(impDocumentElement)
     return builder.treeBuilt

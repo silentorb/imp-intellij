@@ -6,6 +6,7 @@ import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.editor.Document
 import com.intellij.openapi.editor.event.DocumentEvent
 import com.intellij.openapi.editor.event.DocumentListener
+import com.intellij.openapi.fileEditor.FileDocumentManager
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.Disposer
 import com.intellij.ui.content.ContentManager
@@ -29,6 +30,8 @@ import silentorb.imp.parsing.general.formatError
 import silentorb.imp.core.Dungeon
 import silentorb.mythic.spatial.Vector2i
 import java.awt.GridLayout
+import java.nio.file.Path
+import java.nio.file.Paths
 import java.util.concurrent.locks.ReentrantLock
 import javax.swing.JComponent
 import javax.swing.JLabel
@@ -49,6 +52,9 @@ data class PreviewState(
     val type: TypeHash,
     val timestamp: Long
 )
+
+fun getDocumentPath(document: Document): Path =
+    Paths.get(FileDocumentManager.getInstance().getFile(document)!!.path)
 
 class PreviewContainer(project: Project, contentManager: ContentManager) : JPanel(), Disposable {
   var display: PreviewDisplay? = null
