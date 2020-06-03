@@ -8,18 +8,13 @@ import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.psi.PsiElement
 import com.intellij.ui.content.ContentManager
 import silentorb.imp.campaign.getModulesContext
-import silentorb.imp.campaign.getModulesExecutionArtifacts
 import silentorb.imp.core.*
-import silentorb.imp.intellij.services.initialContext
 import silentorb.imp.core.Range
 import silentorb.imp.core.Dungeon
 import silentorb.imp.intellij.services.getWorkspaceArtifact
 import silentorb.imp.intellij.ui.misc.*
-import silentorb.imp.parsing.parser.parseDungeon
-import silentorb.imp.parsing.parser.parseToDungeon
 import silentorb.mythic.imaging.texturing.newRgbTypeHash
 import java.awt.Dimension
-import java.net.URI
 import java.nio.file.Paths
 import javax.swing.*
 
@@ -105,17 +100,8 @@ private val complexTypeControls: Map<TypeHash, ComplexTypeControl> = mapOf(
 fun newFieldControl(getPsiElement: GetPsiValue, context: Context, dungeon: Dungeon, node: PathKey, type: TypeHash?): ControlField? {
   val graph = dungeon.graph
   val complexTypeControl = complexTypeControls[type]
-//  val type = graph.implementationTypes[node]
-//      ?: if (complexTypeControl != null)
-//        functionType
-//      else
-//        null
+  val parameters = getParameterConnections(context, node)
 
-  val connections = graph.connections.filter { it.value == node }
-  val parameters = connections
-//      .flatMap { match ->
-//    match.alignment.filter { it.value == node }.keys
-//  }
   return if (type != null && parameters.any()) {
     val nodes = if (complexTypeControl != null) {
       dungeon.graph.connections
@@ -150,16 +136,17 @@ fun gatherControlFields(getPsiElement: GetPsiValue, context: Context, dungeon: D
   val functionType = graph.implementationTypes[node]
   return if (functionType != null && !complexTypeControls.containsKey(functionType)) {
 
-    val connections = graph.connections.filter { it.key.destination == node }
+    val connections = getArgumentConnections(context, node)
     connections.mapNotNull { connection ->
-      newFieldControl(getPsiElement, context, dungeon, connection.value, graph.returnTypes[node])
+      val child = connection.value
+      newFieldControl(getPsiElement, context, dungeon, connection.value, graph.implementationTypes[child] ?: graph.returnTypes[child])
     }
   } else {
     listOfNotNull(newFieldControl(getPsiElement, context, dungeon, node, functionType))
   }
 }
 
-fun updateControlList(changePsiValue: ChangePsiValue, values: Map<PathKey, Any>, field: ControlField): JComponent {
+fun updateControlList(changePsiValue: ChangePsiValue, values: Map<PathKey, Any>, field: ControlField): JComponent? {
   val nodes = field.nodes
   val psiElements = field.psiElements
 
@@ -172,8 +159,11 @@ fun updateControlList(changePsiValue: ChangePsiValue, values: Map<PathKey, Any>,
     val childValues = nodes.mapNotNull { values[it] }
     row.add(complexTypeControls[field.type]!!(changePsiValue, psiElements, childValues))
   }
+  else{
+    return null
+  }
   val label = JLabel(field.name, SwingConstants.RIGHT)
-  label.setPreferredSize(Dimension(80, 30))
+//  label.setPreferredSize(Dimension(80, 30))
   row.add(label)
   return row
 }
@@ -191,7 +181,9 @@ fun updateControlPanel(getPsiElement: GetPsiValue, changePsiValue: ChangePsiValu
       controls.removeAll()
       val fields = gatherControlFields(getPsiElement, context, dungeon, node)
       fields.forEach { field ->
-        controls.add(updateControlList(changePsiValue, dungeon.graph.values, field))
+        val fieldComponent = updateControlList(changePsiValue, dungeon.graph.values, field)
+        if (fieldComponent != null)
+        controls.add(fieldComponent)
       }
       controls.revalidate()
       controls.repaint()

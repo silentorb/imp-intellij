@@ -72,7 +72,13 @@ class ImpLanguageService {
           parsingErrors
       )
     } else {
-      parseToDungeon(actualFile.path, context)(document.text)
+      val (dungeon, dungeonResponse) = parseToDungeon(actualFile.path, context)(document.text)
+      ParsingResponse(
+          dungeon.copy(
+              graph = mergeNamespaces(context + dungeon.graph)
+          ),
+          dungeonResponse
+      )
     }
 
     val artifact = DungeonArtifact(
