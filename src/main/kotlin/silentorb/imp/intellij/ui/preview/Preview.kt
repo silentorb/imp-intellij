@@ -1,5 +1,6 @@
 package silentorb.imp.intellij.ui.preview
 
+import com.intellij.codeInsight.documentation.DocumentationManager
 import com.intellij.openapi.Disposable
 import com.intellij.openapi.actionSystem.ActionToolbar
 import com.intellij.openapi.application.ApplicationManager
@@ -7,6 +8,7 @@ import com.intellij.openapi.editor.Document
 import com.intellij.openapi.editor.event.DocumentEvent
 import com.intellij.openapi.editor.event.DocumentListener
 import com.intellij.openapi.fileEditor.FileDocumentManager
+import com.intellij.openapi.project.DumbService
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.Disposer
 import com.intellij.ui.content.ContentManager
@@ -19,17 +21,15 @@ import silentorb.imp.execution.arrangeGraphSequence
 import silentorb.imp.intellij.messaging.NodePreviewNotifier
 import silentorb.imp.intellij.messaging.nodePreviewTopic
 import silentorb.imp.intellij.services.getDocumentMetadataService
-import silentorb.imp.intellij.ui.misc.ActiveDocumentWatcher
-import silentorb.imp.intellij.ui.misc.getDungeonAndErrors
-import silentorb.imp.intellij.ui.misc.replacePanelContents
-import silentorb.imp.intellij.ui.misc.watchParsed
 import silentorb.imp.parsing.general.ParsingErrors
 import silentorb.imp.parsing.general.englishText
 import silentorb.imp.parsing.general.formatError
 import silentorb.imp.execution.ExecutionStep
 import silentorb.imp.execution.prepareExecutionSteps
+import silentorb.imp.intellij.services.getPreviewFileLock
 import silentorb.imp.intellij.services.getWorkspaceArtifact
 import silentorb.imp.intellij.services.initialFunctions
+import silentorb.imp.intellij.ui.misc.*
 import silentorb.mythic.spatial.Vector2i
 import java.awt.GridLayout
 import java.nio.file.Path
@@ -67,6 +67,7 @@ class PreviewContainer(project: Project, contentManager: ContentManager) : JPane
   var state: PreviewState? = null
   var nextUpdatedDocument: Document? = null
   var nextUpdatedTime: Long? = null
+  var lastPreviewLockFile: String? = null
 
   val documentListener: DocumentListener = object : DocumentListener {
     override fun documentChanged(event: DocumentEvent) {
@@ -74,6 +75,7 @@ class PreviewContainer(project: Project, contentManager: ContentManager) : JPane
       nextUpdatedTime = System.currentTimeMillis()
     }
   }
+
   val activeDocumentWatcher = ActiveDocumentWatcher(project, watchParsed(project) { dungeon, document, errors ->
     if (document != previousDocument) {
       if (previousDocument != null) {
@@ -84,17 +86,14 @@ class PreviewContainer(project: Project, contentManager: ContentManager) : JPane
       }
       previousDocument = document
       println("Active document changed")
-      update(dungeon, errors)
+      if (getPreviewFileLock() == null) {
+        update(dungeon, errors)
+      }
     }
-
 //    println("file change: ${file?.name ?: "none"}")
   })
 
   init {
-    activeDocumentWatcher.start(contentManager)
-    layout = GridLayout(0, 1)
-    Disposer.register(contentManager, this)
-
     val bus = ApplicationManager.getApplication().getMessageBus()
     connection = bus.connect()
     connection.subscribe(nodePreviewTopic, object : NodePreviewNotifier {
@@ -105,27 +104,43 @@ class PreviewContainer(project: Project, contentManager: ContentManager) : JPane
       }
     })
 
-    val timer = TimerUtil.createNamedTimer("ActiveDocumentWatcher", 33) {
-      val document = nextUpdatedDocument
-      val updatedTime = nextUpdatedTime
-      if (document != null && updatedTime != null && System.currentTimeMillis() > updatedTime + 5) {
-        nextUpdatedDocument = null
-        nextUpdatedTime = null
-        val response = getDungeonAndErrors(project, document)
-        if (response != null) {
-          val (dungeon, errors) = response
-          println("Active document contents changed ${dungeon.graph.hashCode()}")
-          update(dungeon, errors)
+    DumbService.getInstance(project).runWhenSmart {
+      activeDocumentWatcher.start(contentManager)
+      layout = GridLayout(0, 1)
+      Disposer.register(contentManager, this)
+
+      val timer = TimerUtil.createNamedTimer("ActiveDocumentWatcher", 33) {
+        val document = nextUpdatedDocument
+        val updatedTime = nextUpdatedTime
+        val previewLockFile = getPreviewFileLock()
+        val fileChanged = updatedTime != null && System.currentTimeMillis() > updatedTime + 5
+        if ((document != null && fileChanged) || previewLockFile != lastPreviewLockFile) {
+          lastPreviewLockFile = previewLockFile
+          nextUpdatedDocument = null
+          nextUpdatedTime = null
+          val dungeonDocument = if (previewLockFile != null)
+            getDocumentFromPath(previewLockFile)!!
+          else
+            document ?: previousDocument
+
+          if (dungeonDocument != null) {
+            val response = getDungeonAndErrors(project, dungeonDocument)
+            if (response != null) {
+              val (dungeon, errors) = response
+              println("Active document contents changed ${dungeon.graph.hashCode()}")
+              update(dungeon, errors)
+            }
+          }
         }
       }
+
+      Disposer.register(this, Disposable {
+        timer.stop()
+      })
+
+      timer.start()
+      Disposer.register(contentManager, this)
     }
-
-    Disposer.register(this, Disposable {
-      timer.stop()
-    })
-
-    timer.start()
-    Disposer.register(contentManager, this)
   }
 
   fun update(dungeon: Dungeon?, errors: ParsingErrors) {
@@ -144,7 +159,10 @@ class PreviewContainer(project: Project, contentManager: ContentManager) : JPane
   override fun dispose() {
     val document = previousDocument
     if (document != null) {
-      document.removeDocumentListener(documentListener)
+      try {
+        document.removeDocumentListener(documentListener)
+      } catch (error: Error) {
+      }
     }
     connection.disconnect()
   }
@@ -175,8 +193,8 @@ fun updatePreviewState(
     node: PathKey?
 ): PreviewState {
   val output = node ?: getGraphOutputNode(graph)
-  val steps = if (output != null) {
-    val filePath = getDocumentPath(document!!)
+  val steps = if (output != null && document != null) {
+    val filePath = getDocumentPath(document)
     val workspaceResponse = getWorkspaceArtifact(filePath)
     val moduleDirectory = findContainingModule(filePath)
     if (workspaceResponse != null && moduleDirectory != null && workspaceResponse.value.modules.containsKey(moduleDirectory.fileName.toString())) {
@@ -223,13 +241,13 @@ fun updatePreview(document: Document?, preview: PreviewContainer, graph: Graph, 
   val state = updatePreviewState(document, type, graph, timestamp, preview, node)
   // The layout of new preview children isn't fully initialized until after this UI tick
   SwingUtilities.invokeLater {
-    SwingUtilities.invokeLater {
-      val display = preview.display
-      if (display != null) {
-        if (display.content.width != 0) {
-          display.update(state)
-        }
+//    SwingUtilities.invokeLater {
+    val display = preview.display
+    if (display != null) {
+      if (display.content.width != 0) {
+        display.update(state)
       }
+//      }
     }
   }
 }

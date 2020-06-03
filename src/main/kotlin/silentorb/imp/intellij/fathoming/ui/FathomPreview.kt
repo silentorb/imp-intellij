@@ -11,10 +11,7 @@ import silentorb.imp.intellij.fathoming.state.getFathomPreviewStateService
 import silentorb.imp.intellij.services.executeGraph
 import silentorb.imp.intellij.services.initialFunctions
 import silentorb.imp.intellij.ui.misc.resizeListener
-import silentorb.imp.intellij.ui.preview.NewPreviewProps
-import silentorb.imp.intellij.ui.preview.PreviewDisplay
-import silentorb.imp.intellij.ui.preview.PreviewState
-import silentorb.imp.intellij.ui.preview.getDocumentPath
+import silentorb.imp.intellij.ui.preview.*
 import silentorb.imp.intellij.ui.texturing.newImageElement
 import silentorb.mythic.imaging.fathoming.*
 import silentorb.mythic.imaging.fathoming.sampling.SamplePoint
@@ -197,12 +194,10 @@ fun newSubstancePreview(props: NewPreviewProps): PreviewDisplay {
     }
   })
 
-  val actionManager = ActionManager.getInstance()
-  val actionGroup = DefaultActionGroup("ACTION_GROUP", false)
-  actionGroup.add(DisplayModeAction())
-  val actionToolbar = actionManager.createActionToolbar("ACTION_GROUP", actionGroup, true)
-  actionToolbar.component.preferredSize = Dimension(0, 40)
-  panel.toolbar = actionToolbar.component
+  val actions = listOf(
+      DisplayModeAction()
+  )
+  panel.toolbar = newPreviewToolbar(actions).component
 
   return PreviewDisplay(
       content = panel,

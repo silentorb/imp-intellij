@@ -10,14 +10,12 @@ import com.intellij.util.messages.MessageBusConnection
 import silentorb.imp.core.getGraphOutputNode
 import silentorb.imp.execution.OutputValues
 import silentorb.imp.execution.executeStep
+import silentorb.imp.intellij.fathoming.actions.DisplayModeAction
 import silentorb.imp.intellij.services.initialFunctions
-import silentorb.imp.intellij.messaging.ToggleTilingNotifier
+import silentorb.imp.intellij.messaging.ToggleNotifier
 import silentorb.imp.intellij.messaging.toggleTilingTopic
 import silentorb.imp.intellij.ui.misc.resizeListener
-import silentorb.imp.intellij.ui.preview.NewPreviewProps
-import silentorb.imp.intellij.ui.preview.PreviewDisplay
-import silentorb.imp.intellij.ui.preview.PreviewState
-import silentorb.imp.intellij.ui.preview.isPreviewOutdated
+import silentorb.imp.intellij.ui.preview.*
 import silentorb.mythic.imaging.texturing.*
 import silentorb.mythic.spatial.Vector2i
 import java.awt.Color
@@ -42,7 +40,7 @@ class ImagePreviewPanel(var dimensions: Vector2i) : SimpleToolWindowPanel(true),
   init {
     val bus = ApplicationManager.getApplication().getMessageBus()
     connection = bus.connect()
-    connection.subscribe(toggleTilingTopic, object : ToggleTilingNotifier {
+    connection.subscribe(toggleTilingTopic, object : ToggleNotifier {
       override fun handle(tiling: Boolean) {
         tilingChanged(self)
       }
@@ -206,7 +204,6 @@ fun updateImagePreview(state: PreviewState, container: ImagePreviewPanel) {
 
 fun newImagePreview(props: NewPreviewProps): PreviewDisplay {
   val dimensions = props.dimensions
-//  println("new ImagePreview ${dimensions.x} ${dimensions.y}")
   val container = ImagePreviewPanel(dimensions)
   container.addComponentListener(resizeListener(container) {
     if (container.startedDrawing) {
@@ -215,21 +212,18 @@ fun newImagePreview(props: NewPreviewProps): PreviewDisplay {
   })
   container.background = Color.black
 
-//  val gridWrapper = JPanel()
   container.add(container.grid)
-
-  val actionManager = ActionManager.getInstance()
-  val actionGroup = DefaultActionGroup("ACTION_GROUP", false)
-  actionGroup.add(ActionManager.getInstance().getAction("silentorb.imp.intellij.actions.ToggleTilingAction"))
-  val actionToolbar = actionManager.createActionToolbar("ACTION_GROUP", actionGroup, true)
-  actionToolbar.component.preferredSize = Dimension(0, 40)
-
   container.setContent(container.grid)
-  container.toolbar = actionToolbar.component
+
+  val actions = listOf(
+      ActionManager.getInstance().getAction("silentorb.imp.intellij.actions.ToggleTilingAction")
+  )
+  val toolbar = newPreviewToolbar(actions)
+  container.toolbar = toolbar.component
 
   return PreviewDisplay(
       content = container,
-      toolbar = actionToolbar,
+      toolbar = toolbar,
       update = { state ->
         updateImagePreview(state, container)
       }

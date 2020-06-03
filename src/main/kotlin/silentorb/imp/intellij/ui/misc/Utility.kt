@@ -4,6 +4,7 @@ import com.intellij.openapi.command.WriteCommandAction
 import com.intellij.openapi.editor.Document
 import com.intellij.openapi.fileEditor.FileDocumentManager
 import com.intellij.openapi.project.Project
+import com.intellij.openapi.vfs.LocalFileSystem
 import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.psi.PsiDocumentManager
 import com.intellij.psi.PsiElement
@@ -23,6 +24,7 @@ import silentorb.imp.parsing.general.ParsingErrors
 import silentorb.imp.parsing.general.ParsingResponse
 import java.awt.event.ComponentEvent
 import java.awt.event.ComponentListener
+import java.io.File
 import javax.swing.JComponent
 import javax.swing.JPanel
 
@@ -133,3 +135,14 @@ fun resizeListener(component: JComponent, onResize: () -> Unit) =
       override fun componentHidden(e: ComponentEvent?) {}
       override fun componentShown(e: ComponentEvent?) {}
     }
+
+fun getFileFromPath(path: String): VirtualFile? =
+  LocalFileSystem.getInstance().findFileByIoFile(File(path))
+
+fun getDocumentFromPath(path: String): Document? {
+  val file = getFileFromPath(path)
+  return if (file != null)
+    FileDocumentManager.getInstance().getDocument(file)
+  else
+    null
+}

@@ -9,7 +9,7 @@ import silentorb.imp.intellij.ui.texturing.setTiling
 
 class ToggleTilingAction : ToggleAction() {
 
-  override fun setSelected(e: AnActionEvent, state: Boolean) {
+  override fun setSelected(event: AnActionEvent, state: Boolean) {
     val bus = ApplicationManager.getApplication().getMessageBus()
     val publisher = bus.syncPublisher(toggleTilingTopic)
     val tiling = !getTiling()

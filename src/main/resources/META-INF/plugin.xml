@@ -42,5 +42,9 @@
         <action id="silentorb.imp.intellij.substance.actions.SubstanceDisplayModeAction"
                 class="silentorb.imp.intellij.fathoming.actions.DisplayModeAction" text="Display Mode"
                 description="Determines how the 3D view is rendered"/>
+        <action id="silentorb.imp.intellij.actions.SetPreviewFileLockAction"
+                class="silentorb.imp.intellij.actions.SetPreviewFileLockAction" text="Lock Preview File">
+            <keyboard-shortcut keymap="$default" first-keystroke="ctrl L"/>
+        </action>
     </actions>
 </idea-plugin>

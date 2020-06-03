@@ -11,14 +11,18 @@ interface ParsingNotifier {
 
 val PARSING_TOPIC = Topic.create("Parsing", ParsingNotifier::class.java)
 
-interface ToggleTilingNotifier {
-  fun handle(tiling: Boolean)
+interface ToggleNotifier {
+  fun handle(value: Boolean)
 }
 
-val toggleTilingTopic = Topic.create("toggleTiling", ToggleTilingNotifier::class.java)
+interface SetNullableStringValueNotifier {
+  fun handle(value: String?)
+}
 
 interface NodePreviewNotifier {
   fun handle(document: Document, node: PathKey?)
 }
 
+val toggleTilingTopic = Topic.create("toggleTiling", ToggleNotifier::class.java)
 val nodePreviewTopic = Topic.create("nodePreview", NodePreviewNotifier::class.java)
+val setPreviewFileLockTopic = Topic.create("setPreviewFileLock", SetNullableStringValueNotifier::class.java)
