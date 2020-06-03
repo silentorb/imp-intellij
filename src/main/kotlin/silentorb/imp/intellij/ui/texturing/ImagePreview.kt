@@ -168,13 +168,10 @@ fun updateImagePreview(state: PreviewState, container: ImagePreviewPanel) {
 //        println("$timestamp Canceled1")
         break
       }
-      val additionalArguments = mapOf("__globalDimensions" to dimensions)
       var values: OutputValues = graph.values
       val output = state.node ?: getGraphOutputNode(graph)
       for (step in steps) {
-        values = executeStep(functions, graph, values, step, additionalArguments)
-        if (step == output)
-          break
+        values = executeStep(values, step)
       }
       val value = values[output]
       if (value == null)

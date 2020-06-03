@@ -1,21 +1,15 @@
 package silentorb.imp.intellij.fathoming.ui
 
-import silentorb.imp.campaign.getModulesExecutionArtifacts
-import silentorb.imp.core.FunctionImplementationMap
-import silentorb.imp.core.Graph
-import silentorb.imp.core.PathKey
-import silentorb.imp.core.getGraphOutputNode
-import silentorb.imp.execution.execute
-import silentorb.imp.intellij.services.getWorkspaceArtifact
 import silentorb.mythic.imaging.fathoming.DistanceFunction
-import silentorb.mythic.imaging.fathoming.surfacing.*
+import silentorb.mythic.imaging.fathoming.surfacing.Edges
+import silentorb.mythic.imaging.fathoming.surfacing.VertexFace
 import silentorb.mythic.imaging.fathoming.surfacing.old.*
 import silentorb.mythic.imaging.fathoming.surfacing.old.marching.marchingCubes
+import silentorb.mythic.imaging.fathoming.surfacing.vertexList
 import silentorb.mythic.spatial.Vector3
 import silentorb.mythic.spatial.Vector3i
 import silentorb.mythic.spatial.toList
 import silentorb.mythic.spatial.toVector3
-import java.nio.file.Path
 
 fun simplify(vertices: FloatArray): FloatArray {
   val fullVectorList = (vertices.indices step 3)
@@ -60,19 +54,6 @@ fun simplify(vertices: FloatArray): FloatArray {
         }
       }
       .toFloatArray()
-}
-
-fun executeGraph(file: Path, functions: FunctionImplementationMap, graph: Graph, node: PathKey?): Any? {
-  val output = node ?: getGraphOutputNode(graph)
-  val workspaceResponse = getWorkspaceArtifact(file)
-  val functions2 = if (workspaceResponse != null) {
-    val (_, functions2) = getModulesExecutionArtifacts(functions, workspaceResponse.value.modules)
-    functions2
-  } else
-    functions
-
-  val values = execute(functions2, graph, mapOf())
-  return values[output]
 }
 
 fun generateShadedMesh(value: DistanceFunction): FloatArray {

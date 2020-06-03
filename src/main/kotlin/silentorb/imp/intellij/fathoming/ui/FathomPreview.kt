@@ -8,6 +8,7 @@ import silentorb.imp.intellij.fathoming.actions.DisplayModeAction
 import silentorb.imp.intellij.fathoming.state.FathomPreviewState
 import silentorb.imp.intellij.fathoming.state.getDisplayMode
 import silentorb.imp.intellij.fathoming.state.getFathomPreviewStateService
+import silentorb.imp.intellij.services.executeGraph
 import silentorb.imp.intellij.services.initialFunctions
 import silentorb.imp.intellij.ui.misc.resizeListener
 import silentorb.imp.intellij.ui.preview.NewPreviewProps
@@ -169,7 +170,7 @@ fun sampleMesh(hash: Int, panel: SubstancePreviewPanel, getDistance: DistanceFun
 fun rebuildPreviewSource(state: PreviewState, panel: SubstancePreviewPanel) {
   panel.startedDrawing = true
   val functions = initialFunctions()
-  val value = executeGraph(getDocumentPath(state.document!!),  functions, state.graph, state.node)
+  val value = executeGraph(getDocumentPath(state.document!!), functions, state.graph, state.node)
   if (value != null) {
     when (state.type) {
       distanceFunctionType.hash -> {

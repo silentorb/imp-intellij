@@ -5,13 +5,11 @@ import com.intellij.openapi.components.ServiceManager
 import com.intellij.openapi.editor.Document
 import com.intellij.openapi.fileEditor.FileDocumentManager
 import com.intellij.psi.PsiFile
-import silentorb.imp.campaign.CampaignResponse
-import silentorb.imp.campaign.Workspace
-import silentorb.imp.campaign.findContainingWorkspaceDirectory
-import silentorb.imp.campaign.loadContainingWorkspace
+import silentorb.imp.campaign.*
 import silentorb.imp.core.*
 import silentorb.imp.execution.Library
 import silentorb.imp.execution.combineLibraries
+import silentorb.imp.execution.execute
 import silentorb.imp.library.standard.standardLibrary
 import silentorb.imp.parsing.general.ParsingResponse
 import silentorb.imp.parsing.parser.parseToDungeon
@@ -45,6 +43,14 @@ class ImpLanguageService {
     functions = library.implementation
   }
 
+  fun getOrCreateWorkspaceArtifact(childPath: Path): CampaignResponse<Workspace>? {
+    val workspaceResponse = loadContainingWorkspace(library, childPath)
+    if (workspaceResponse != null) {
+      workspaceArtifacts[workspaceResponse.value.path] = workspaceResponse
+    }
+    return workspaceResponse
+  }
+
   fun getArtifact(document: Document, file: PsiFile): ParsingResponse<Dungeon> {
     val existing = dungeonArtifacts[file]
     if (existing != null && existing.timestamp == document.modificationStamp)
@@ -55,11 +61,10 @@ class ImpLanguageService {
     val actualFile = FileDocumentManager.getInstance().getFile(document)!!
     val filePath = Paths.get(actualFile.path)
 
-    val loadingResponse = loadContainingWorkspace(library, filePath)
-    val response = if (loadingResponse != null) {
-      val (moduleDirectory, workspaceResponse) = loadingResponse
+    val workspaceResponse = getOrCreateWorkspaceArtifact(filePath)
+    val moduleDirectory = findContainingModule(filePath)
+    val response = if (workspaceResponse != null && moduleDirectory != null) {
       val (workspace, _, parsingErrors) = workspaceResponse
-      workspaceArtifacts[workspace.path] = workspaceResponse
       val moduleName = moduleDirectory.fileName.toString()
       val fileName = filePath.fileName.toString().split(".").first()
       ParsingResponse(
@@ -93,4 +98,20 @@ fun getExistingArtifact(file: PsiFile): ParsingResponse<Dungeon>? =
     getImpLanguageService().dungeonArtifacts[file]?.response
 
 fun getWorkspaceArtifact(path: Path): CampaignResponse<Workspace>? =
-    getImpLanguageService().workspaceArtifacts[findContainingWorkspaceDirectory(path)]
+    getImpLanguageService().getOrCreateWorkspaceArtifact(path)
+
+fun executeGraph(file: Path, functions: FunctionImplementationMap, graph: Graph, node: PathKey?): Any? {
+  val output = node ?: getGraphOutputNode(graph)
+  return if (output == null)
+    null
+  else {
+    val workspaceResponse = getWorkspaceArtifact(file)
+    val (context, functions2) = if (workspaceResponse != null) {
+      getModulesExecutionArtifacts(functions, workspaceResponse.value.modules)
+    } else
+      Pair(listOf(graph), functions)
+
+    val values = execute(context, functions2, setOf(output))
+    values[output]
+  }
+}

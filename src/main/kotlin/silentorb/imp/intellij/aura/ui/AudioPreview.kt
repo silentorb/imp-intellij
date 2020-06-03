@@ -5,7 +5,7 @@ import com.intellij.openapi.ui.SimpleToolWindowPanel
 import silentorb.imp.core.FunctionImplementationMap
 import silentorb.imp.core.Graph
 import silentorb.imp.core.PathKey
-import silentorb.imp.intellij.fathoming.ui.executeGraph
+import silentorb.imp.intellij.services.executeGraph
 import silentorb.imp.intellij.services.initialFunctions
 import silentorb.imp.intellij.ui.preview.NewPreviewProps
 import silentorb.imp.intellij.ui.preview.PreviewDisplay

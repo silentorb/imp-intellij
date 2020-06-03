@@ -12,10 +12,9 @@ import com.intellij.openapi.util.Disposer
 import com.intellij.ui.content.ContentManager
 import com.intellij.util.messages.MessageBusConnection
 import com.intellij.util.ui.TimerUtil
-import silentorb.imp.core.Graph
-import silentorb.imp.core.PathKey
-import silentorb.imp.core.TypeHash
-import silentorb.imp.core.getGraphOutputNode
+import silentorb.imp.campaign.findContainingModule
+import silentorb.imp.campaign.getModulesExecutionArtifacts
+import silentorb.imp.core.*
 import silentorb.imp.execution.arrangeGraphSequence
 import silentorb.imp.intellij.messaging.NodePreviewNotifier
 import silentorb.imp.intellij.messaging.nodePreviewTopic
@@ -27,7 +26,10 @@ import silentorb.imp.intellij.ui.misc.watchParsed
 import silentorb.imp.parsing.general.ParsingErrors
 import silentorb.imp.parsing.general.englishText
 import silentorb.imp.parsing.general.formatError
-import silentorb.imp.core.Dungeon
+import silentorb.imp.execution.ExecutionStep
+import silentorb.imp.execution.prepareExecutionSteps
+import silentorb.imp.intellij.services.getWorkspaceArtifact
+import silentorb.imp.intellij.services.initialFunctions
 import silentorb.mythic.spatial.Vector2i
 import java.awt.GridLayout
 import java.nio.file.Path
@@ -48,7 +50,7 @@ data class PreviewState(
     val document: Document?,
     val graph: Graph,
     val node: PathKey?,
-    val steps: List<PathKey>,
+    val steps: List<ExecutionStep>,
     val type: TypeHash,
     val timestamp: Long
 )
@@ -172,7 +174,19 @@ fun updatePreviewState(
     container: PreviewContainer,
     node: PathKey?
 ): PreviewState {
-  val steps = arrangeGraphSequence(graph, mapOf())
+  val output = node ?: getGraphOutputNode(graph)
+  val steps = if (output != null) {
+    val filePath = getDocumentPath(document!!)
+    val workspaceResponse = getWorkspaceArtifact(filePath)
+    val moduleDirectory = findContainingModule(filePath)
+    if (workspaceResponse != null && moduleDirectory != null && workspaceResponse.value.modules.containsKey(moduleDirectory.fileName.toString())) {
+      val (context, functions) = getModulesExecutionArtifacts(initialFunctions(), workspaceResponse.value.modules)
+      prepareExecutionSteps(context, functions, setOf(output))
+    } else
+      prepareExecutionSteps(listOf(graph), initialFunctions(), setOf(output))
+  } else
+    listOf()
+
   sourceLock.lock()
   val state = PreviewState(
       document = document,
@@ -192,8 +206,6 @@ fun updatePreview(document: Document?, preview: PreviewContainer, graph: Graph, 
     val newDisplay = newPreview(document, type, Vector2i(preview.width))
     if (newDisplay != null) {
       replacePanelContents(preview, newDisplay.content)
-//      preview.setContent(newDisplay.content)
-//      preview.toolbar = newDisplay.toolbar?.component ?: JPanel()
       val oldComponent = preview.display?.content
       if (oldComponent is Disposable) {
         Disposer.dispose(oldComponent)
@@ -249,6 +261,18 @@ fun updatePreview(document: Document?, graph: Graph, preview: PreviewContainer, 
   val type = graph.returnTypes[output]
   if (type != null) {
     updatePreview(document, preview, graph, type, timestamp, node)
+  } else {
+    sourceLock.lock()
+    preview.state = PreviewState(
+        document = document,
+        type = unknownType.hash,
+        graph = graph,
+        node = node,
+        steps = listOf(),
+        timestamp = timestamp
+    )
+    sourceLock.unlock()
+    replacePanelContents(preview, messagePanel("No preview for this type"))
   }
 }
 

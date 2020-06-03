@@ -7,19 +7,20 @@ import com.intellij.openapi.project.Project
 import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.psi.PsiElement
 import com.intellij.ui.content.ContentManager
+import silentorb.imp.campaign.getModulesContext
+import silentorb.imp.campaign.getModulesExecutionArtifacts
 import silentorb.imp.core.*
 import silentorb.imp.intellij.services.initialContext
-import silentorb.imp.intellij.ui.misc.ActiveDocumentWatcher
-import silentorb.imp.intellij.ui.misc.changePsiValue
-import silentorb.imp.intellij.ui.misc.findNodeEntry
-import silentorb.imp.intellij.ui.misc.getPsiElement
 import silentorb.imp.core.Range
 import silentorb.imp.core.Dungeon
+import silentorb.imp.intellij.services.getWorkspaceArtifact
+import silentorb.imp.intellij.ui.misc.*
 import silentorb.imp.parsing.parser.parseDungeon
 import silentorb.imp.parsing.parser.parseToDungeon
 import silentorb.mythic.imaging.texturing.newRgbTypeHash
 import java.awt.Dimension
 import java.net.URI
+import java.nio.file.Paths
 import javax.swing.*
 
 fun getCurrentEditorCaretOffset(project: Project, file: VirtualFile): Int? {
@@ -45,10 +46,18 @@ class ControlPanel(val project: Project, contentManager: ContentManager) : JPane
         lastCaretOffset = caretOffset
         if (caretOffset != null) {
           val document = FileDocumentManager.getInstance().getDocument(file)!!
-          val context = initialContext()
-          val (dungeon, errors) = parseToDungeon(file.path, context)(document.text)
-          if (errors.none()) {
-            updateControlPanel(getPsiElement(project, document), changePsiValue(project), context, this, dungeon, caretOffset, tracker)
+          val response = getDungeonAndErrors(project, document)
+          if (response != null) {
+            val (dungeon, errors) = response
+            if (errors.none()) {
+              val workspaceResponse = getWorkspaceArtifact(Paths.get(file.path))
+              val context = if (workspaceResponse != null)
+                getModulesContext(workspaceResponse.value.modules)
+              else
+                listOf(dungeon.graph)
+
+              updateControlPanel(getPsiElement(project, document), changePsiValue(project), context, this, dungeon, caretOffset, tracker)
+            }
           }
         }
       }
@@ -119,7 +128,7 @@ fun newFieldControl(getPsiElement: GetPsiValue, context: Context, dungeon: Dunge
         .filter { it.key.destination == node }
         .map { it.value }
         .plus(node)
-        .map { dungeon.nodeMap[it]!!.range.start.index }
+        .mapNotNull { dungeon.nodeMap[it]?.range?.start?.index }
 
     val psiElements = offsets.map(getPsiElement).filterNotNull()
     if (psiElements.any())
@@ -160,7 +169,7 @@ fun updateControlList(changePsiValue: ChangePsiValue, values: Map<PathKey, Any>,
     val value = values[nodes.first()]!!
     newSlider(changePsiValue, psiElements.first(), value as Int, constraintRange, row)
   } else if (complexTypeControls.containsKey(field.type)) {
-    val childValues = nodes.map { values[it]!! }
+    val childValues = nodes.mapNotNull { values[it] }
     row.add(complexTypeControls[field.type]!!(changePsiValue, psiElements, childValues))
   }
   val label = JLabel(field.name, SwingConstants.RIGHT)
