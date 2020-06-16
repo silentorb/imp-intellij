@@ -33,8 +33,8 @@ object FathomLab {
     val context = languageService.context
     val functions = languageService.functions
     val (dungeon, errors) = parseToDungeon("", context)(impCode)
-    if (errors.any())
-      throw Error(errors.first().message.name)
+//    if (errors.any())
+//      throw Error(errors.first().message)
 
     val graph = dungeon.graph
     val dimensions = Vector2i(400, 400)

@@ -113,7 +113,7 @@ fun executeGraph(file: Path, functions: FunctionImplementationMap, graph: Graph,
   else {
     val workspaceResponse = getWorkspaceArtifact(file)
     val (context, functions2) = if (workspaceResponse != null) {
-      getModulesExecutionArtifacts(functions, workspaceResponse.value.modules)
+      getModulesExecutionArtifacts(functions, listOf(graph), workspaceResponse.value.modules)
     } else
       Pair(listOf(graph), functions)
 

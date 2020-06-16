@@ -198,7 +198,7 @@ fun updatePreviewState(
     val workspaceResponse = getWorkspaceArtifact(filePath)
     val moduleDirectory = findContainingModule(filePath)
     if (workspaceResponse != null && moduleDirectory != null && workspaceResponse.value.modules.containsKey(moduleDirectory.fileName.toString())) {
-      val (context, functions) = getModulesExecutionArtifacts(initialFunctions(), workspaceResponse.value.modules)
+      val (context, functions) = getModulesExecutionArtifacts(initialFunctions(), listOf(), workspaceResponse.value.modules)
       prepareExecutionSteps(context, functions, setOf(output))
     } else
       prepareExecutionSteps(listOf(graph), initialFunctions(), setOf(output))

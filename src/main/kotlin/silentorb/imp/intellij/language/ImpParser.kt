@@ -5,39 +5,42 @@ import com.intellij.lang.LightPsiParser
 import com.intellij.lang.PsiBuilder
 import com.intellij.lang.PsiParser
 import com.intellij.psi.tree.IElementType
-import silentorb.imp.intellij.services.initialContext
 import silentorb.imp.parsing.general.englishText
-import silentorb.imp.parsing.parser.parseToDungeon
+import silentorb.imp.parsing.parser.tokenizeAndSanitize
+import silentorb.imp.parsing.syntax.toTokenGraph
+import java.nio.file.Paths
 
 class ImpParser : PsiParser, LightPsiParser {
   override fun parse(root: IElementType, builder: PsiBuilder): ASTNode {
-    val context = initialContext()
-//    val (dungeon, errors) = parseToDungeon("", context)(builder.originalText)
-
-//    val nodeMap = dungeon.nodeMap
+    val filePath = Paths.get("")
+    val (tokens, lexingErrors) = tokenizeAndSanitize(filePath.toString(), builder.originalText)
+    val (tokenizedGraph, tokenGraphErrors) = toTokenGraph(filePath.toString(), tokens)
+    val errors = lexingErrors + tokenGraphErrors
 
     val ignoreErrors = runeTokenTypes.containsValue(root)
 
     val documentMarker = builder.mark()
     while (!builder.eof()) {
       val currentTokenStart = builder.currentOffset
-//      val node = nodeMap.entries.firstOrNull { (_, value) ->
-//        value.range.start.index == currentTokenStart
-//      }
       if (!ignoreErrors) {
-//        val error = errors.firstOrNull { it.fileRange.range.start.index == currentTokenStart }
-//        if (error != null) {
-//          builder.error(englishText(error.message))
-//        }
+        val error = errors.firstOrNull { it.fileRange.range.start.index == currentTokenStart }
+        if (error != null) {
+          builder.error(englishText(error.message))
+        }
       }
-      val tokenType = builder.tokenType!!
+      val definitionSymbol = tokenizedGraph.definitions
+          .map { it.symbol }
+          .firstOrNull { it.range.start.index == currentTokenStart }
+
+      val tokenType =
+//        if (definitionSymbol != null)
+//        ImpTokenTypes.definitionSymbol
+//      else
+        builder.tokenType!!
+
       val marker = builder.mark()
       builder.advanceLexer()
-//      if (node != null) {
-        marker.done(tokenType)
-//      } else {
-//        marker.done(tokenType)
-//      }
+      marker.done(tokenType)
     }
     documentMarker.done(impDocumentElement)
     return builder.treeBuilt
