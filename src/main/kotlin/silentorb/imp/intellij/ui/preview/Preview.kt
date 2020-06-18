@@ -20,15 +20,12 @@ import silentorb.imp.core.*
 import silentorb.imp.execution.arrangeGraphSequence
 import silentorb.imp.intellij.messaging.NodePreviewNotifier
 import silentorb.imp.intellij.messaging.nodePreviewTopic
-import silentorb.imp.intellij.services.getDocumentMetadataService
 import silentorb.imp.parsing.general.ParsingErrors
 import silentorb.imp.parsing.general.englishText
 import silentorb.imp.parsing.general.formatError
 import silentorb.imp.execution.ExecutionStep
 import silentorb.imp.execution.prepareExecutionSteps
-import silentorb.imp.intellij.services.getPreviewFileLock
-import silentorb.imp.intellij.services.getWorkspaceArtifact
-import silentorb.imp.intellij.services.initialFunctions
+import silentorb.imp.intellij.services.*
 import silentorb.imp.intellij.ui.misc.*
 import silentorb.mythic.spatial.Vector2i
 import java.awt.GridLayout
@@ -204,7 +201,7 @@ fun updatePreviewState(
             ) {
                 val (context, functions) = getModulesExecutionArtifacts(
                     initialFunctions(),
-                    listOf(),
+                    initialContext(),
                     workspaceResponse.value.modules
                 )
                 prepareExecutionSteps(context, functions, setOf(output))
