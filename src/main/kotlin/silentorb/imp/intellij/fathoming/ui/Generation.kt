@@ -1,11 +1,11 @@
 package silentorb.imp.intellij.fathoming.ui
 
-import silentorb.mythic.imaging.fathoming.DistanceFunction
-import silentorb.mythic.imaging.fathoming.surfacing.Edges
-import silentorb.mythic.imaging.fathoming.surfacing.VertexFace
-import silentorb.mythic.imaging.fathoming.surfacing.old.*
-import silentorb.mythic.imaging.fathoming.surfacing.old.marching.marchingCubes
-import silentorb.mythic.imaging.fathoming.surfacing.vertexList
+import silentorb.mythic.fathom.DistanceFunction
+import silentorb.mythic.fathom.surfacing.Edges
+import silentorb.mythic.fathom.surfacing.VertexFace
+import silentorb.mythic.fathom.surfacing.old.*
+import silentorb.mythic.fathom.surfacing.old.marching.marchingCubes
+import silentorb.mythic.fathom.surfacing.vertexList
 import silentorb.mythic.spatial.Vector3
 import silentorb.mythic.spatial.Vector3i
 import silentorb.mythic.spatial.toList

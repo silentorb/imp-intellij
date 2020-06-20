@@ -14,7 +14,7 @@ import silentorb.imp.library.standard.standardLibrary
 import silentorb.imp.parsing.general.ParsingResponse
 import silentorb.imp.parsing.parser.parseToDungeon
 import silentorb.mythic.aura.generation.imp.auraLibrary
-import silentorb.mythic.imaging.fathoming.fathomLibrary
+import silentorb.mythic.fathom.fathomLibrary
 import silentorb.mythic.imaging.texturing.texturingLibrary
 import java.nio.file.Path
 import java.nio.file.Paths

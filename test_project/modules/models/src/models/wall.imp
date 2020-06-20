@@ -12,4 +12,4 @@ let color = noise
 
 let surface = deform distance (dirtBump .* 0.5)
 
-let main = newModel surface color
+let main = newModel surface color collisionBox

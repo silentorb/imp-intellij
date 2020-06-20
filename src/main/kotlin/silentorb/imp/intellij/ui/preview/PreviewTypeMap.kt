@@ -5,9 +5,9 @@ import silentorb.imp.intellij.aura.ui.newAudioPreview
 import silentorb.imp.intellij.fathoming.ui.newSubstancePreview
 import silentorb.imp.intellij.ui.texturing.newImagePreview
 import silentorb.mythic.aura.generation.imp.audioOutputType
-import silentorb.mythic.imaging.fathoming.distanceFunctionType
-import silentorb.mythic.imaging.fathoming.floatSampler3dType
-import silentorb.mythic.imaging.fathoming.modelFunctionType
+import silentorb.mythic.fathom.distanceFunctionType
+import silentorb.mythic.fathom.floatSampler3dType
+import silentorb.mythic.fathom.modelFunctionType
 import silentorb.mythic.imaging.texturing.floatSampler2dType
 import silentorb.mythic.imaging.texturing.rgbSampler2dType
 

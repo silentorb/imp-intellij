@@ -13,11 +13,11 @@ import silentorb.imp.intellij.services.initialFunctions
 import silentorb.imp.intellij.ui.misc.resizeListener
 import silentorb.imp.intellij.ui.preview.*
 import silentorb.imp.intellij.ui.texturing.newImageElement
-import silentorb.mythic.imaging.fathoming.*
-import silentorb.mythic.imaging.fathoming.sampling.SamplePoint
-import silentorb.mythic.imaging.fathoming.sampling.SamplingConfig
-import silentorb.mythic.imaging.fathoming.sampling.sampleCells
-import silentorb.mythic.imaging.fathoming.surfacing.getSceneGridBounds
+import silentorb.mythic.fathom.*
+import silentorb.mythic.fathom.sampling.SamplePoint
+import silentorb.mythic.fathom.sampling.SamplingConfig
+import silentorb.mythic.fathom.sampling.sampleCells
+import silentorb.mythic.fathom.surfacing.getSceneGridBounds
 import silentorb.mythic.spatial.Vector2i
 import silentorb.mythic.spatial.Vector3
 import silentorb.mythic.spatial.toList
