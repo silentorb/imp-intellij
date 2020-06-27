@@ -141,23 +141,32 @@ fun sampleMesh(hash: Int, panel: SubstancePreviewPanel, getDistance: DistanceFun
     val bounds = getSceneGridBounds(getDistance, 1f)
         .pad(1)
 
-    val (stepCount, sampler) = sampleCells(config, bounds)
-    var vertices = FloatArray(0)
-    for (step in (0 until stepCount)) {
-      if (currentGraphHash != hash) {
-        println("Stopping $hash B")
-        break
-      }
-      val points = sampler(step)
-      vertices += flattenSamplePoints(points)
-      vertexLock.lock()
-      if (currentGraphHash != hash) {
-        vertexLock.unlock()
-      } else {
-        panel.vertices = vertices
-        panel.verticesChanged = true
-        vertexLock.unlock()
-      }
+//    val (stepCount, sampler) = sampleCells(config, bounds)
+//    var vertices = FloatArray(0)
+//    for (step in (0 until stepCount)) {
+//      if (currentGraphHash != hash) {
+//        println("Stopping $hash B")
+//        break
+//      }
+//      val points = sampler(step)
+//      vertices += flattenSamplePoints(points)
+//      vertexLock.lock()
+//      if (currentGraphHash != hash) {
+//        vertexLock.unlock()
+//      } else {
+//        panel.vertices = vertices
+//        panel.verticesChanged = true
+//        vertexLock.unlock()
+//      }
+//    }
+    val vertices = generateShadedMesh(config.getDistance, config.getShading)
+    vertexLock.lock()
+    if (currentGraphHash != hash) {
+      vertexLock.unlock()
+    } else {
+      panel.vertices = vertices
+      panel.verticesChanged = true
+      vertexLock.unlock()
     }
   }
 }

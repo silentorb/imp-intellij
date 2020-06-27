@@ -107,12 +107,19 @@ fun createScene(cameraState: CameraState) =
 fun renderMesh(vertices: FloatArray, dimensions: Vector2i, cameraState: CameraState): BufferedImage {
   val scene = createScene(cameraState)
   val initialRenderer = rendererSingleton()
-  val vertexSchema = initialRenderer.vertexSchemas.shadedPoint
+  val vertexSchema = initialRenderer.vertexSchemas.shadedColor
+//  val mesh = newMesh(vertices, initialRenderer.vertexSchemas)
+//  val mesh = GeneralMesh(
+//      vertexSchema = vertexSchema,
+//      vertexBuffer = newVertexBuffer(vertexSchema).load(createFloatBuffer(vertices)),
+//      count = vertices.size / vertexSchema.floatSize,
+//      primitiveType = PrimitiveType.points
+//  )
   val mesh = GeneralMesh(
       vertexSchema = vertexSchema,
       vertexBuffer = newVertexBuffer(vertexSchema).load(createFloatBuffer(vertices)),
       count = vertices.size / vertexSchema.floatSize,
-      primitiveType = PrimitiveType.points
+      primitiveType = PrimitiveType.triangles
   )
   try {
     val renderer = initialRenderer
@@ -134,15 +141,17 @@ fun renderMesh(vertices: FloatArray, dimensions: Vector2i, cameraState: CameraSt
 //      )
       val effect = renderer.getShader(vertexSchema, ShaderFeatureConfig(
           shading = true,
-          pointSize = true
+          colored = true
+//          pointSize = true
       ))
 
       val config = ObjectShaderConfig(
-          nearPlaneHeight = getNearPlaneHeight(viewport, scene.camera.angleOrZoom)
+//          nearPlaneHeight = getNearPlaneHeight(viewport, scene.camera.angleOrZoom)
       )
 
       effect.activate(config)
-      drawMesh(mesh, GL11.GL_POINTS)
+      drawMesh(mesh, GL11.GL_TRIANGLES)
+//      drawMesh(mesh, GL11.GL_POINTS)
 
       checkError("It worked")
     }
