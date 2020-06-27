@@ -20,7 +20,7 @@ dependencies {
     implementation("silentorb.mythic:aura_generation")
     implementation("silentorb.mythic:imaging")
     implementation("silentorb.mythic:lookinglass")
-    implementation("silentorb.mythic:desktop")
+    implementation("silentorb.mythic:mythic-desktop")
     implementation("silentorb.mythic:fathom")
 }
 

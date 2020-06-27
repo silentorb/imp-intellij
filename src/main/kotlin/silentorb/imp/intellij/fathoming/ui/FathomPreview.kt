@@ -1,8 +1,6 @@
 package silentorb.imp.intellij.fathoming.ui
 
 import com.intellij.openapi.Disposable
-import com.intellij.openapi.actionSystem.ActionManager
-import com.intellij.openapi.actionSystem.DefaultActionGroup
 import com.intellij.openapi.ui.SimpleToolWindowPanel
 import silentorb.imp.intellij.fathoming.actions.DisplayModeAction
 import silentorb.imp.intellij.fathoming.state.FathomPreviewState
@@ -13,16 +11,15 @@ import silentorb.imp.intellij.services.initialFunctions
 import silentorb.imp.intellij.ui.misc.resizeListener
 import silentorb.imp.intellij.ui.preview.*
 import silentorb.imp.intellij.ui.texturing.newImageElement
-import silentorb.mythic.fathom.*
-import silentorb.mythic.fathom.sampling.SamplePoint
+import silentorb.mythic.fathom.misc.*
 import silentorb.mythic.fathom.sampling.SamplingConfig
 import silentorb.mythic.fathom.sampling.sampleCells
 import silentorb.mythic.fathom.surfacing.getSceneGridBounds
+import silentorb.mythic.lookinglass.toFloatList
+import silentorb.mythic.scenery.SamplePoint
 import silentorb.mythic.spatial.Vector2i
 import silentorb.mythic.spatial.Vector3
-import silentorb.mythic.spatial.toList
 import java.awt.Color
-import java.awt.Dimension
 import java.util.concurrent.locks.ReentrantLock
 import javax.swing.JComponent
 import javax.swing.JPanel
@@ -110,7 +107,7 @@ fun updateMeshDisplay(panel: SubstancePreviewPanel, vertices: FloatArray?) {
 
 fun flattenSamplePoints(points: List<SamplePoint>) =
     points
-        .flatMap { toList(it.location) + toList(it.normal) + listOf(it.size) + toList(it.color) }
+        .flatMap(::toFloatList)
         .toFloatArray()
 
 fun rebuildPreview(panel: SubstancePreviewPanel) {
@@ -122,7 +119,7 @@ fun rebuildPreview(panel: SubstancePreviewPanel) {
   }
 }
 
-fun sampleMesh(hash: Int, panel: SubstancePreviewPanel, getDistance: DistanceFunction, getColor: RgbColorFunction) {
+fun sampleMesh(hash: Int, panel: SubstancePreviewPanel, getDistance: DistanceFunction, getShading: ShadingFunction) {
   println("Generating $hash")
   if (hash == currentGraphHash && panel.vertices != null) {
     println("Stopping $hash A")
@@ -135,9 +132,10 @@ fun sampleMesh(hash: Int, panel: SubstancePreviewPanel, getDistance: DistanceFun
   thread(start = true) {
     val config = SamplingConfig(
         getDistance = getDistance,
-        getColor = getColor,
-        resolution = 20,
-        pointSize = 8f
+        getShading = getShading,
+        resolution = 14,
+        levels = 1,
+        pointSizeScale = 8f
     )
 
     val bounds = getSceneGridBounds(getDistance, 1f)
@@ -171,11 +169,11 @@ fun rebuildPreviewSource(state: PreviewState, panel: SubstancePreviewPanel) {
   if (value != null) {
     when (state.type) {
       distanceFunctionType.hash -> {
-        sampleMesh(state.graph.hashCode(), panel, value as DistanceFunction) { Vector3(1f, 0f, 0f) }
+        sampleMesh(state.graph.hashCode(), panel, value as DistanceFunction) { newShading(Vector3(1f, 0f, 0f)) }
       }
       modelFunctionType.hash -> {
         val distanceColor = value as ModelFunction
-        sampleMesh(state.graph.hashCode(), panel, distanceColor.distance, distanceColor.color)
+        sampleMesh(state.graph.hashCode(), panel, distanceColor.form, distanceColor.shading)
       }
       else -> throw Error("Unsupported fathom preview type: ${state.type}")
     }

@@ -1,6 +1,6 @@
 package silentorb.imp.intellij.fathoming.ui
 
-import silentorb.mythic.fathom.DistanceFunction
+import silentorb.mythic.fathom.misc.DistanceFunction
 import silentorb.mythic.fathom.surfacing.Edges
 import silentorb.mythic.fathom.surfacing.VertexFace
 import silentorb.mythic.fathom.surfacing.old.*
