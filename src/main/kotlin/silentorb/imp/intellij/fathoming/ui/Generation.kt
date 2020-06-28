@@ -2,14 +2,12 @@ package silentorb.imp.intellij.fathoming.ui
 
 import silentorb.mythic.fathom.misc.DistanceFunction
 import silentorb.mythic.fathom.misc.ShadingFunction
-import silentorb.mythic.fathom.surfacing.Edges
-import silentorb.mythic.fathom.surfacing.VertexFace
-import silentorb.mythic.fathom.surfacing.getSceneGridBounds
+import silentorb.mythic.fathom.surfacing.*
 import silentorb.mythic.fathom.surfacing.old.*
 import silentorb.mythic.fathom.surfacing.old.marching.marchingCubes
-import silentorb.mythic.fathom.surfacing.vertexList
 import silentorb.mythic.lookinglass.serializeNormal
 import silentorb.mythic.lookinglass.serializeShadingColor
+import silentorb.mythic.lookinglass.serializeVertex
 import silentorb.mythic.spatial.Vector3
 import silentorb.mythic.spatial.getNormal
 import silentorb.mythic.spatial.toList
@@ -64,19 +62,12 @@ fun generateShadedMesh(getDistance: DistanceFunction, getShading: ShadingFunctio
   val voxelsPerUnit = 10
   val bounds = getSceneGridBounds(getDistance, 1f)
       .pad(1)
-  val dimensions = bounds.end - bounds.start
-  val voxelDimensions = dimensions * voxelsPerUnit
-  val voxels = voxelize(getDistance, voxelDimensions, 1, 1f / voxelsPerUnit.toFloat())
-  return marchingCubes(voxels, voxelDimensions, (dimensions - dimensions / 2).toVector3(), 0.5f) { vertexBuffer, a, b, c ->
-    val normal = getNormal(a, b, c)
-    val shadingA = getShading(a)
-    val shadingB = getShading(b)
-    val shadingC = getShading(c)
-    val serializedNormal = serializeNormal(normal)
-    vertexBuffer.addAll(listOf(a.x, a.y, a.z) + serializeShadingColor(shadingA) + serializedNormal)
-    vertexBuffer.addAll(listOf(b.x, b.y, b.z) + serializeShadingColor(shadingB) + serializedNormal)
-    vertexBuffer.addAll(listOf(c.x, c.y, c.z) + serializeShadingColor(shadingC) + serializedNormal)
-  }
+  val voxels = voxelize(getDistance, bounds, 1, voxelsPerUnit)
+  val dimensions = (bounds.end - bounds.start) * voxelsPerUnit
+  return marchingCubes(voxels, bounds.start.toVector3(), dimensions,
+      Vector3.unit / voxelsPerUnit.toFloat(), 0.5f,
+      serializeVertex(getShading) { location -> silentorb.mythic.fathom.misc.getNormal(getDistance, location) }
+  )
 }
 
 fun generateShadedMesh(source: MeshSource): FloatArray {
