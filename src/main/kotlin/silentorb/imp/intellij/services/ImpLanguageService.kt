@@ -67,10 +67,17 @@ class ImpLanguageService {
       val (workspace, _, parsingErrors) = workspaceResponse
       val moduleName = moduleDirectory.fileName.toString()
       val fileName = filePath.fileName.toString().split(".").first()
-      ParsingResponse(
-          workspace.modules[moduleName]!!.dungeons[fileName] ?: emptyDungeon,
-          parsingErrors
-      )
+      val module = workspace.modules[moduleName]
+      if (module != null)
+        ParsingResponse(
+            module.dungeons[fileName] ?: emptyDungeon,
+            parsingErrors
+        )
+      else
+        ParsingResponse(
+            emptyDungeon,
+            parsingErrors
+        )
     } else {
       val (dungeon, dungeonResponse) = parseToDungeon(actualFile.path, context)(document.text)
       ParsingResponse(

@@ -2,7 +2,7 @@ import silentorb.mythic.fathom.*
 import silentorb.mythic.generation.texturing.RgbColor
 import lib.*
 
-let distance = cube (Vector3 3.0 1.0 3.0)
+let distance = cube (Vector3 10.0 1.0 10.0)
 
 let color = noise
     scale = 54

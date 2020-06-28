@@ -13,8 +13,8 @@ import silentorb.imp.intellij.ui.preview.*
 import silentorb.imp.intellij.ui.texturing.newImageElement
 import silentorb.mythic.fathom.misc.*
 import silentorb.mythic.fathom.sampling.SamplingConfig
-import silentorb.mythic.fathom.sampling.sampleCells
 import silentorb.mythic.fathom.surfacing.getSceneGridBounds
+import silentorb.mythic.lookinglass.IndexedGeometry
 import silentorb.mythic.lookinglass.toFloatList
 import silentorb.mythic.scenery.SamplePoint
 import silentorb.mythic.spatial.Vector2i
@@ -35,7 +35,7 @@ class SubstancePreviewPanel : SimpleToolWindowPanel(true), Disposable {
   var previewState: PreviewState? = null
   var startedDrawing: Boolean = false
 
-  var vertices: FloatArray? = null
+  var rawMesh: IndexedGeometry? = null
   var verticesChanged: Boolean = false
   var previousDisplayMode = getDisplayMode()
   val updateTimer = Timer(33) { event ->
@@ -62,7 +62,7 @@ class SubstancePreviewPanel : SimpleToolWindowPanel(true), Disposable {
 
   fun checkUpdate() {
     vertexLock.lock()
-    val localVertices = vertices
+    val localVertices = rawMesh
     val localVerticesChanged = verticesChanged
     verticesChanged = false
     vertexLock.unlock()
@@ -83,10 +83,10 @@ class SubstancePreviewPanel : SimpleToolWindowPanel(true), Disposable {
 
 }
 
-fun updateMeshDisplay(vertices: FloatArray, dimensions: Vector2i, panel: SubstancePreviewPanel) {
+fun updateMeshDisplay(rawMesh: IndexedGeometry, dimensions: Vector2i, panel: SubstancePreviewPanel) {
   val document = panel.previewState?.document
   if (document != null) {
-    val image = renderMesh(vertices, dimensions, getFathomPreviewStateService().getState(document).camera)
+    val image = renderMesh(rawMesh, dimensions, getFathomPreviewStateService().getState(document).camera)
     SwingUtilities.invokeLater {
       panel.setContent(newImageElement(image))
 //    replacePanelContents(panel, newImageElement(image))
@@ -97,11 +97,11 @@ fun updateMeshDisplay(vertices: FloatArray, dimensions: Vector2i, panel: Substan
 fun getPanelDimensions(panel: JComponent) =
     Vector2i(panel.width, panel.width)
 
-fun updateMeshDisplay(panel: SubstancePreviewPanel, vertices: FloatArray?) {
+fun updateMeshDisplay(panel: SubstancePreviewPanel, rawMesh: IndexedGeometry?) {
   val state = panel.previewState
-  if (state != null && vertices != null) {
+  if (state != null && rawMesh != null) {
     val dimensions = getPanelDimensions(panel)
-    updateMeshDisplay(vertices, dimensions, panel)
+    updateMeshDisplay(rawMesh, dimensions, panel)
   }
 }
 
@@ -113,7 +113,7 @@ fun flattenSamplePoints(points: List<SamplePoint>) =
 fun rebuildPreview(panel: SubstancePreviewPanel) {
   val dimensions = getPanelDimensions(panel)
   panel.startedDrawing = true
-  val vertices = panel.vertices
+  val vertices = panel.rawMesh
   if (vertices != null) {
     updateMeshDisplay(vertices, dimensions, panel)
   }
@@ -121,7 +121,7 @@ fun rebuildPreview(panel: SubstancePreviewPanel) {
 
 fun sampleMesh(hash: Int, panel: SubstancePreviewPanel, getDistance: DistanceFunction, getShading: ShadingFunction) {
   println("Generating $hash")
-  if (hash == currentGraphHash && panel.vertices != null) {
+  if (hash == currentGraphHash && panel.rawMesh != null) {
     println("Stopping $hash A")
     return
   }
@@ -138,33 +138,12 @@ fun sampleMesh(hash: Int, panel: SubstancePreviewPanel, getDistance: DistanceFun
         pointSizeScale = 8f
     )
 
-    val bounds = getSceneGridBounds(getDistance, 1f)
-        .pad(1)
-
-//    val (stepCount, sampler) = sampleCells(config, bounds)
-//    var vertices = FloatArray(0)
-//    for (step in (0 until stepCount)) {
-//      if (currentGraphHash != hash) {
-//        println("Stopping $hash B")
-//        break
-//      }
-//      val points = sampler(step)
-//      vertices += flattenSamplePoints(points)
-//      vertexLock.lock()
-//      if (currentGraphHash != hash) {
-//        vertexLock.unlock()
-//      } else {
-//        panel.vertices = vertices
-//        panel.verticesChanged = true
-//        vertexLock.unlock()
-//      }
-//    }
-    val vertices = generateShadedMesh(config.getDistance, config.getShading)
+    val rawMesh = generateShadedMesh(config.getDistance, config.getShading)
     vertexLock.lock()
     if (currentGraphHash != hash) {
       vertexLock.unlock()
     } else {
-      panel.vertices = vertices
+      panel.rawMesh = rawMesh
       panel.verticesChanged = true
       vertexLock.unlock()
     }
@@ -197,7 +176,7 @@ fun newSubstancePreview(props: NewPreviewProps): PreviewDisplay {
   panel.setContent(placeholder)
   panel.addComponentListener(resizeListener(panel) {
     if (panel.startedDrawing) {
-      updateMeshDisplay(panel, panel.vertices)
+      updateMeshDisplay(panel, panel.rawMesh)
     }
   })
 

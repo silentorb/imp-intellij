@@ -19,6 +19,7 @@ import silentorb.mythic.platforming.WindowInfo
 import silentorb.mythic.scenery.*
 import silentorb.mythic.spatial.*
 import java.awt.image.BufferedImage
+import java.nio.IntBuffer
 import kotlin.math.abs
 import kotlin.math.tan
 
@@ -104,20 +105,16 @@ fun createScene(cameraState: CameraState) =
         lightingConfig = LightingConfig(ambient = 0.3f)
     )
 
-fun renderMesh(vertices: FloatArray, dimensions: Vector2i, cameraState: CameraState): BufferedImage {
-  val scene = createScene(cameraState)
+fun renderMesh(rawMesh: IndexedGeometry, dimensions: Vector2i, cameraState: CameraState): BufferedImage {
+  val (vertices, triangles) = rawMesh
   val initialRenderer = rendererSingleton()
   val vertexSchema = initialRenderer.vertexSchemas.shadedColor
-//  val mesh = newMesh(vertices, initialRenderer.vertexSchemas)
-//  val mesh = GeneralMesh(
-//      vertexSchema = vertexSchema,
-//      vertexBuffer = newVertexBuffer(vertexSchema).load(createFloatBuffer(vertices)),
-//      count = vertices.size / vertexSchema.floatSize,
-//      primitiveType = PrimitiveType.points
-//  )
+  val indices = BufferUtils.createIntBuffer(triangles.size * 3)
+  indices.put(triangles.flatten().toIntArray())
   val mesh = GeneralMesh(
       vertexSchema = vertexSchema,
       vertexBuffer = newVertexBuffer(vertexSchema).load(createFloatBuffer(vertices)),
+      indices = indices,
       count = vertices.size / vertexSchema.floatSize,
       primitiveType = PrimitiveType.triangles
   )
@@ -130,28 +127,18 @@ fun renderMesh(vertices: FloatArray, dimensions: Vector2i, cameraState: CameraSt
       glow.state.clearColor = Vector4(1f, 1f, 0f, 1f)
       val offscreenBuffer = renderer.offscreenBuffers.first()
       val viewport = Vector4i(0, 0, dimensions.x, dimensions.y)
-      val sceneRenderer = createSceneRenderer(renderer, scene, viewport)
       glow.state.setFrameBuffer(offscreenBuffer.framebuffer.id)
       glow.state.viewport = viewport
       glow.operations.clearScreen()
-//      glow.state.pointSize = 7f
-//      val material = Material(
-//          color = Vector4(1f, 0f, 0f, 1f),
-//          shading = true
-//      )
       val effect = renderer.getShader(vertexSchema, ShaderFeatureConfig(
           shading = true,
           colored = true
-//          pointSize = true
       ))
 
-      val config = ObjectShaderConfig(
-//          nearPlaneHeight = getNearPlaneHeight(viewport, scene.camera.angleOrZoom)
-      )
+      val config = ObjectShaderConfig()
 
       effect.activate(config)
       drawMesh(mesh, GL11.GL_TRIANGLES)
-//      drawMesh(mesh, GL11.GL_POINTS)
 
       checkError("It worked")
     }

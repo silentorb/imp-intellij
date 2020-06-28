@@ -2,16 +2,18 @@ package silentorb.imp.intellij.fathoming.ui
 
 import silentorb.mythic.fathom.misc.DistanceFunction
 import silentorb.mythic.fathom.misc.ShadingFunction
-import silentorb.mythic.fathom.surfacing.*
-import silentorb.mythic.fathom.surfacing.old.*
-import silentorb.mythic.fathom.surfacing.old.marching.marchingCubes
-import silentorb.mythic.lookinglass.serializeNormal
-import silentorb.mythic.lookinglass.serializeShadingColor
+import silentorb.mythic.fathom.surfacing.Edges
+import silentorb.mythic.fathom.surfacing.VertexFace
+import silentorb.mythic.fathom.surfacing.old.Mesh
+import silentorb.mythic.fathom.surfacing.old.Triangle
+import silentorb.mythic.fathom.surfacing.old.Vertex
+import silentorb.mythic.fathom.surfacing.old.marching.marchingMesh
+import silentorb.mythic.fathom.surfacing.old.simplifyMesh
+import silentorb.mythic.fathom.surfacing.vertexList
+import silentorb.mythic.lookinglass.IndexedGeometry
 import silentorb.mythic.lookinglass.serializeVertex
 import silentorb.mythic.spatial.Vector3
-import silentorb.mythic.spatial.getNormal
 import silentorb.mythic.spatial.toList
-import silentorb.mythic.spatial.toVector3
 
 fun simplify(vertices: FloatArray): FloatArray {
   val fullVectorList = (vertices.indices step 3)
@@ -58,16 +60,13 @@ fun simplify(vertices: FloatArray): FloatArray {
       .toFloatArray()
 }
 
-fun generateShadedMesh(getDistance: DistanceFunction, getShading: ShadingFunction): FloatArray {
-  val voxelsPerUnit = 10
-  val bounds = getSceneGridBounds(getDistance, 1f)
-      .pad(1)
-  val voxels = voxelize(getDistance, bounds, 1, voxelsPerUnit)
-  val dimensions = (bounds.end - bounds.start) * voxelsPerUnit
-  return marchingCubes(voxels, bounds.start.toVector3(), dimensions,
-      Vector3.unit / voxelsPerUnit.toFloat(), 0.5f,
-      serializeVertex(getShading) { location -> silentorb.mythic.fathom.misc.getNormal(getDistance, location) }
-  )
+fun generateShadedMesh(getDistance: DistanceFunction, getShading: ShadingFunction): IndexedGeometry {
+  val (vertices, triangles) = marchingMesh(10, getDistance, getShading)
+  val vertexFloats = vertices
+      .flatMap(::serializeVertex)
+      .toFloatArray()
+
+  return IndexedGeometry(vertexFloats, triangles)
 }
 
 fun generateShadedMesh(source: MeshSource): FloatArray {
