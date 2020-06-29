@@ -109,8 +109,7 @@ fun renderMesh(rawMesh: IndexedGeometry, dimensions: Vector2i, cameraState: Came
   val (vertices, triangles) = rawMesh
   val initialRenderer = rendererSingleton()
   val vertexSchema = initialRenderer.vertexSchemas.shadedColor
-  val indices = BufferUtils.createIntBuffer(triangles.size * 3)
-  indices.put(triangles.flatten().toIntArray())
+  val indices = createIntBuffer(triangles.flatten())
   val mesh = GeneralMesh(
       vertexSchema = vertexSchema,
       vertexBuffer = newVertexBuffer(vertexSchema).load(createFloatBuffer(vertices)),
