@@ -17,11 +17,9 @@ import silentorb.mythic.lookinglass.shading.ObjectShaderConfig
 import silentorb.mythic.lookinglass.shading.ShaderFeatureConfig
 import silentorb.mythic.platforming.WindowInfo
 import silentorb.mythic.scenery.*
+import silentorb.mythic.shapemeshes.getShapeVertices
 import silentorb.mythic.spatial.*
 import java.awt.image.BufferedImage
-import java.nio.IntBuffer
-import kotlin.math.abs
-import kotlin.math.tan
 
 var hiddenWindow: Long? = null
 
@@ -105,18 +103,41 @@ fun createScene(cameraState: CameraState) =
         lightingConfig = LightingConfig(ambient = 0.3f)
     )
 
-fun renderMesh(rawMesh: IndexedGeometry, dimensions: Vector2i, cameraState: CameraState): BufferedImage {
+fun renderMesh(rawMesh: IndexedGeometry, collisionShape: Shape?, dimensions: Vector2i, cameraState: CameraState): BufferedImage {
+  val scene = createScene(cameraState)
   val (vertices, triangles) = rawMesh
   val initialRenderer = rendererSingleton()
   val vertexSchema = initialRenderer.vertexSchemas.shadedColor
-  val indices = createIntBuffer(triangles.flatten())
-  val mesh = GeneralMesh(
+  val collisionVertexSchema = initialRenderer.vertexSchemas.flat
+  val subjectMesh = GeneralMesh(
       vertexSchema = vertexSchema,
       vertexBuffer = newVertexBuffer(vertexSchema).load(createFloatBuffer(vertices)),
-      indices = indices,
+      indices = createIntBuffer(triangles.flatten()),
       count = vertices.size / vertexSchema.floatSize,
       primitiveType = PrimitiveType.triangles
   )
+  val collisionMesh = if (collisionShape != null) {
+    val intermediate = getShapeVertices(collisionShape)
+    val collisionVertices = createFloatBuffer(intermediate.vertices.flatMap(::toList))
+    val lines = (intermediate.triangles.indices step 3)
+        .flatMap { step ->
+          (0 until 3).flatMap { i ->
+            listOf(
+                intermediate.triangles[step + i],
+                intermediate.triangles[step + ((i + 1) % 3)]
+            )
+          }
+        }
+
+    GeneralMesh(
+        vertexSchema = collisionVertexSchema,
+        vertexBuffer = newVertexBuffer(collisionVertexSchema).load(collisionVertices),
+        count = lines.size / 2,
+        indices = createIntBuffer(lines),
+        primitiveType = PrimitiveType.triangles
+    )
+  } else
+    null
   try {
     val renderer = initialRenderer
     val windowInfo = WindowInfo(dimensions = dimensions)
@@ -126,6 +147,7 @@ fun renderMesh(rawMesh: IndexedGeometry, dimensions: Vector2i, cameraState: Came
       glow.state.clearColor = Vector4(1f, 1f, 0f, 1f)
       val offscreenBuffer = renderer.offscreenBuffers.first()
       val viewport = Vector4i(0, 0, dimensions.x, dimensions.y)
+      val sceneRenderer = createSceneRenderer(renderer, scene, viewport)
       glow.state.setFrameBuffer(offscreenBuffer.framebuffer.id)
       glow.state.viewport = viewport
       glow.operations.clearScreen()
@@ -134,15 +156,24 @@ fun renderMesh(rawMesh: IndexedGeometry, dimensions: Vector2i, cameraState: Came
           colored = true
       ))
 
-      val config = ObjectShaderConfig()
+      effect.activate(ObjectShaderConfig())
+      drawMesh(subjectMesh, GL11.GL_TRIANGLES)
 
-      effect.activate(config)
-      drawMesh(mesh, GL11.GL_TRIANGLES)
+      if (collisionMesh != null) {
+        val collisionEffect = renderer.getShader(collisionVertexSchema, ShaderFeatureConfig())
 
+        collisionEffect.activate(ObjectShaderConfig(color = Vector4(0f, 0f, 1f, 1f)))
+//        collisionMesh.vertexBuffer.activate()
+//        GL11.glDrawElements(GL11.GL_LINES, collisionMesh.indices)
+        drawMesh(collisionMesh, GL11.GL_LINES)
+      }
       checkError("It worked")
     }
+  } catch (error: Error) {
+    println(error.message)
   } finally {
-    mesh.vertexBuffer.dispose()
+    subjectMesh.vertexBuffer.dispose()
+    collisionMesh?.vertexBuffer?.dispose()
   }
   val buffer = BufferUtils.createFloatBuffer(dimensions.x * dimensions.y * 3)
   GL11.glReadPixels(0, 0, dimensions.x, dimensions.y, GL11.GL_RGB, GL11.GL_FLOAT, buffer)

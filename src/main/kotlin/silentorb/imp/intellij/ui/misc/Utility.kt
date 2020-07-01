@@ -22,24 +22,16 @@ import silentorb.imp.intellij.services.getImpLanguageService
 import silentorb.imp.intellij.ui.controls.PsiElementWrapper
 import silentorb.imp.parsing.general.ParsingErrors
 import silentorb.imp.parsing.general.ParsingResponse
+import java.awt.BorderLayout
 import java.awt.event.ComponentEvent
 import java.awt.event.ComponentListener
 import java.io.File
 import javax.swing.JComponent
 import javax.swing.JPanel
 
-//fun tryParse(content: CharSequence): ParsingResponse<Dungeon> {
-//  val context = initialContext()
-//  return parseToDungeon(context)(content)
-////      .map(onSuccess)
-////      .onError { errors ->
-////        messagePanel(formatError(::englishText, errors.first()))
-////      }
-//}
-
 fun replacePanelContents(panel: JPanel, child: JComponent) {
   panel.removeAll()
-  panel.add(child)
+  panel.add(child, BorderLayout.CENTER)
   panel.revalidate()
   panel.repaint()
 }

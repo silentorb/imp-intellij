@@ -12,11 +12,10 @@ import silentorb.imp.intellij.ui.misc.resizeListener
 import silentorb.imp.intellij.ui.preview.*
 import silentorb.imp.intellij.ui.texturing.newImageElement
 import silentorb.mythic.fathom.misc.*
-import silentorb.mythic.fathom.sampling.SamplingConfig
-import silentorb.mythic.fathom.surfacing.getSceneGridBounds
 import silentorb.mythic.lookinglass.IndexedGeometry
 import silentorb.mythic.lookinglass.toFloatList
 import silentorb.mythic.scenery.SamplePoint
+import silentorb.mythic.scenery.Shape
 import silentorb.mythic.spatial.Vector2i
 import silentorb.mythic.spatial.Vector3
 import java.awt.Color
@@ -36,6 +35,7 @@ class SubstancePreviewPanel : SimpleToolWindowPanel(true), Disposable {
   var startedDrawing: Boolean = false
 
   var rawMesh: IndexedGeometry? = null
+  var collisionShape: Shape? = null
   var verticesChanged: Boolean = false
   var previousDisplayMode = getDisplayMode()
   val updateTimer = Timer(33) { event ->
@@ -86,7 +86,8 @@ class SubstancePreviewPanel : SimpleToolWindowPanel(true), Disposable {
 fun updateMeshDisplay(rawMesh: IndexedGeometry, dimensions: Vector2i, panel: SubstancePreviewPanel) {
   val document = panel.previewState?.document
   if (document != null) {
-    val image = renderMesh(rawMesh, dimensions, getFathomPreviewStateService().getState(document).camera)
+    val camera = getFathomPreviewStateService().getState(document).camera
+    val image = renderMesh(rawMesh, panel.collisionShape, dimensions, camera)
     SwingUtilities.invokeLater {
       panel.setContent(newImageElement(image))
 //    replacePanelContents(panel, newImageElement(image))
@@ -119,7 +120,12 @@ fun rebuildPreview(panel: SubstancePreviewPanel) {
   }
 }
 
-fun sampleMesh(hash: Int, panel: SubstancePreviewPanel, getDistance: DistanceFunction, getShading: ShadingFunction) {
+fun sampleMesh(
+    hash: Int,
+    panel: SubstancePreviewPanel,
+    getDistance: DistanceFunction,
+    collisionShape: Shape?,
+    getShading: ShadingFunction) {
   println("Generating $hash")
   if (hash == currentGraphHash && panel.rawMesh != null) {
     println("Stopping $hash A")
@@ -130,21 +136,14 @@ fun sampleMesh(hash: Int, panel: SubstancePreviewPanel, getDistance: DistanceFun
   vertexLock.unlock()
 
   thread(start = true) {
-    val config = SamplingConfig(
-        getDistance = getDistance,
-        getShading = getShading,
-        resolution = 14,
-        levels = 1,
-        pointSizeScale = 8f
-    )
-
-    val rawMesh = generateShadedMesh(config.getDistance, config.getShading)
+    val rawMesh = generateShadedMesh(getDistance, getShading)
     vertexLock.lock()
     if (currentGraphHash != hash) {
       vertexLock.unlock()
     } else {
       panel.rawMesh = rawMesh
       panel.verticesChanged = true
+      panel.collisionShape = collisionShape
       vertexLock.unlock()
     }
   }
@@ -157,11 +156,11 @@ fun rebuildPreviewSource(state: PreviewState, panel: SubstancePreviewPanel) {
   if (value != null) {
     when (state.type) {
       distanceFunctionType.hash -> {
-        sampleMesh(state.graph.hashCode(), panel, value as DistanceFunction) { newShading(Vector3(1f, 0f, 0f)) }
+        sampleMesh(state.graph.hashCode(), panel, value as DistanceFunction, null) { newShading(Vector3(1f, 0f, 0f)) }
       }
       modelFunctionType.hash -> {
-        val distanceColor = value as ModelFunction
-        sampleMesh(state.graph.hashCode(), panel, distanceColor.form, distanceColor.shading)
+        val model = value as ModelFunction
+        sampleMesh(state.graph.hashCode(), panel, model.form, model.collision, model.shading)
       }
       else -> throw Error("Unsupported fathom preview type: ${state.type}")
     }

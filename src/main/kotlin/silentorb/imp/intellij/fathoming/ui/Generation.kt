@@ -7,7 +7,7 @@ import silentorb.mythic.fathom.surfacing.VertexFace
 import silentorb.mythic.fathom.surfacing.old.Mesh
 import silentorb.mythic.fathom.surfacing.old.Triangle
 import silentorb.mythic.fathom.surfacing.old.Vertex
-import silentorb.mythic.fathom.surfacing.old.marching.marchingMesh
+import silentorb.mythic.fathom.marching.marchingMesh
 import silentorb.mythic.fathom.surfacing.old.simplifyMesh
 import silentorb.mythic.fathom.surfacing.vertexList
 import silentorb.mythic.lookinglass.IndexedGeometry
