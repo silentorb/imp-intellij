@@ -2,7 +2,6 @@ package silentorb.imp.intellij.fathoming.state
 
 import com.intellij.openapi.components.*
 import com.intellij.openapi.editor.Document
-import com.intellij.util.xmlb.XmlSerializerUtil
 import silentorb.imp.intellij.services.getDocumentFile
 
 data class FathomPreviewStates(
@@ -10,7 +9,7 @@ data class FathomPreviewStates(
 )
 
 @Service
-@State(name = "FathomPreviewState", storages = [Storage("fathomPreviewState.xml")])
+@State(name = "FathomPreviewState", storages = [Storage("imp.xml")])
 class FathomPreviewStateService : PersistentStateComponent<FathomPreviewStates> {
   var internalState: FathomPreviewStates = FathomPreviewStates()
 
@@ -19,25 +18,27 @@ class FathomPreviewStateService : PersistentStateComponent<FathomPreviewStates> 
   }
 
   override fun loadState(state: FathomPreviewStates) {
-    XmlSerializerUtil.copyBean(state, internalState)
+    println(state)
+    internalState = state
   }
 
   fun getState(document: Document): FathomPreviewState =
-      internalState.previewStates[getDocumentFile(document)?.name] ?: newFathomPreviewState()
+      internalState.previewStates[getDocumentFile(document)?.canonicalPath] ?: newFathomPreviewState()
 
   fun setState(document: Document, state: FathomPreviewState?) {
-    val file = getDocumentFile(document)
-    if (file != null) {
-      if (state != internalState.previewStates[file.name]) {
+    val previewStates = internalState.previewStates
+    val filePath = getDocumentFile(document)?.canonicalPath
+    if (filePath != null) {
+      if (state != previewStates[filePath]) {
         if (state != null) {
-          internalState.previewStates[file.name] = state
+          previewStates[filePath] = state
         } else {
-          internalState.previewStates.remove(file.name)
+          previewStates.remove(filePath)
         }
       }
     }
   }
 }
 
-fun getFathomPreviewStateService() =
+fun getFathomPreviewStateService(): FathomPreviewStateService =
     ServiceManager.getService(FathomPreviewStateService::class.java)

@@ -1,16 +1,13 @@
 package silentorb.imp.intellij.services
 
 import com.intellij.codeInsight.daemon.DaemonCodeAnalyzer
-import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.components.*
 import com.intellij.openapi.editor.Document
 import com.intellij.openapi.fileEditor.FileDocumentManager
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.psi.PsiDocumentManager
-import com.intellij.util.xmlb.XmlSerializerUtil
 import silentorb.imp.core.PathKey
-import silentorb.imp.intellij.messaging.nodePreviewTopic
 
 data class DocumentMetadata(
     var previewNodes: MutableMap<String, PathKey> = mutableMapOf()
@@ -26,30 +23,27 @@ class DocumentMetadataService : PersistentStateComponent<DocumentMetadata> {
   }
 
   override fun loadState(state: DocumentMetadata) {
-    XmlSerializerUtil.copyBean(state, internalState)
+    internalState = state
   }
 
   fun getPreviewNode(document: Document): PathKey? =
-      internalState.previewNodes[getDocumentFile(document)?.name]
+      internalState.previewNodes[getDocumentFile(document)?.canonicalPath!!]
 
   fun setPreviewNode(project: Project, document: Document, node: PathKey?) {
     val file = getDocumentFile(document)
     if (file != null) {
-      if (node != internalState.previewNodes[file.name]) {
+      val filePath = file.canonicalPath!!
+      if (node != internalState.previewNodes[filePath]) {
         if (node != null) {
-          internalState.previewNodes[file.name] = node
+          internalState.previewNodes[filePath] = node
         } else {
-          internalState.previewNodes.remove(file.name)
+          internalState.previewNodes.remove(filePath)
         }
 
         val psiFile = PsiDocumentManager.getInstance(project).getPsiFile(document)
         if (psiFile != null) {
           DaemonCodeAnalyzer.getInstance(project).restart()
         }
-
-        val bus = ApplicationManager.getApplication().messageBus
-        val publisher = bus.syncPublisher(nodePreviewTopic)
-        publisher.handle(document, node)
       }
     }
   }
@@ -58,5 +52,5 @@ class DocumentMetadataService : PersistentStateComponent<DocumentMetadata> {
 fun getDocumentFile(document: Document): VirtualFile? =
     FileDocumentManager.getInstance().getFile(document)
 
-fun getDocumentMetadataService() =
+fun getDocumentMetadataService(): DocumentMetadataService =
     ServiceManager.getService(DocumentMetadataService::class.java)

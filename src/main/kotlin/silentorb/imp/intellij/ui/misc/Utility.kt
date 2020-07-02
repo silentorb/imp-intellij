@@ -44,6 +44,18 @@ fun getDungeonAndErrors(project: Project, document: Document): ParsingResponse<D
     null
 }
 
+fun getDungeonWithoutErrors(project: Project, document: Document): Dungeon? {
+  val psiFile = PsiDocumentManager.getInstance(project).getPsiFile(document)
+  return if (psiFile != null) {
+    val (dungeon, errors) = getImpLanguageService().getArtifact(document, psiFile)
+    if (errors.any())
+      null
+    else
+      dungeon
+  } else
+    null
+}
+
 fun getDungeonAndErrors(project: Project, file: PsiFile): ParsingResponse<Dungeon>? {
   val document = PsiDocumentManager.getInstance(project).getDocument(file)
   return if (document != null)
@@ -129,7 +141,7 @@ fun resizeListener(component: JComponent, onResize: () -> Unit) =
     }
 
 fun getFileFromPath(path: String): VirtualFile? =
-  LocalFileSystem.getInstance().findFileByIoFile(File(path))
+    LocalFileSystem.getInstance().findFileByIoFile(File(path))
 
 fun getDocumentFromPath(path: String): Document? {
   val file = getFileFromPath(path)

@@ -98,7 +98,7 @@ class ImpLanguageService {
 
 }
 
-fun getImpLanguageService() =
+fun getImpLanguageService(): ImpLanguageService =
     ServiceManager.getService(ImpLanguageService::class.java)
 
 fun initialContext() =

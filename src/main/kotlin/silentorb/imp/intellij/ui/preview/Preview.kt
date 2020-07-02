@@ -2,7 +2,6 @@ package silentorb.imp.intellij.ui.preview
 
 import com.intellij.openapi.Disposable
 import com.intellij.openapi.actionSystem.ActionToolbar
-import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.editor.Document
 import com.intellij.openapi.editor.event.DocumentEvent
 import com.intellij.openapi.editor.event.DocumentListener
@@ -13,15 +12,12 @@ import com.intellij.openapi.util.Disposer
 import com.intellij.ui.components.JBLabel
 import com.intellij.ui.components.JBScrollPane
 import com.intellij.ui.content.ContentManager
-import com.intellij.util.messages.MessageBusConnection
 import com.intellij.util.ui.TimerUtil
 import silentorb.imp.campaign.findContainingModule
 import silentorb.imp.campaign.getModulesExecutionArtifacts
 import silentorb.imp.core.*
 import silentorb.imp.execution.ExecutionStep
 import silentorb.imp.execution.prepareExecutionSteps
-import silentorb.imp.intellij.messaging.NodePreviewNotifier
-import silentorb.imp.intellij.messaging.nodePreviewTopic
 import silentorb.imp.intellij.services.*
 import silentorb.imp.intellij.ui.misc.*
 import silentorb.imp.parsing.general.ParsingErrors
@@ -57,13 +53,12 @@ fun getDocumentPath(document: Document): Path =
 class PreviewContainer(project: Project, contentManager: ContentManager) : JPanel(), Disposable {
   var display: PreviewDisplay? = null
   var previousDocument: Document? = null
-  val connection: MessageBusConnection
   var lastDungeon: Dungeon? = null
   var lastErrors: ParsingErrors = listOf()
   var state: PreviewState? = null
   var nextUpdatedDocument: Document? = null
   var nextUpdatedTime: Long? = null
-  var lastPreviewLockFile: String? = null
+  var previewLockFile: String? = null
 
   val documentListener: DocumentListener = object : DocumentListener {
     override fun documentChanged(event: DocumentEvent) {
@@ -77,33 +72,22 @@ class PreviewContainer(project: Project, contentManager: ContentManager) : JPane
     if (document != localPreviousDocument) {
       previousDocument = null
       if (localPreviousDocument != null) {
-        println("Preview Listener - Remove ${getDocumentFile(localPreviousDocument)!!.name}")
         localPreviousDocument!!.removeDocumentListener(documentListener)
       }
       if (document != null) {
-        println("Preview Listener - Add ${getDocumentFile(document)!!.name}")
         document.addDocumentListener(documentListener)
       }
       previousDocument = document
       println("Active document changed")
-      if (getPreviewFileLock() == null) {
-        update(dungeon, errors)
-      }
+//      if (getPreviewFileLock() == null) {
+//        update(dungeon, errors)
+//      }
     }
 //    println("file change: ${file?.name ?: "none"}")
   })
 
   init {
     layout = BorderLayout()
-    val bus = ApplicationManager.getApplication().getMessageBus()
-    connection = bus.connect()
-    connection.subscribe(nodePreviewTopic, object : NodePreviewNotifier {
-      override fun handle(document: Document, node: PathKey?) {
-        if (document == previousDocument) {
-          update(lastDungeon, lastErrors)
-        }
-      }
-    })
 
     DumbService.getInstance(project).runWhenSmart {
       activeDocumentWatcher.start(contentManager)
@@ -111,26 +95,27 @@ class PreviewContainer(project: Project, contentManager: ContentManager) : JPane
 
       val timer = TimerUtil.createNamedTimer("ActiveDocumentWatcher", 33) {
         val document = nextUpdatedDocument
-        val updatedTime = nextUpdatedTime
-        val previewLockFile = getPreviewFileLock()
-        val fileChanged = updatedTime != null && System.currentTimeMillis() > updatedTime + 5
-        if ((document != null && fileChanged) || previewLockFile != lastPreviewLockFile) {
-          lastPreviewLockFile = previewLockFile
-          nextUpdatedDocument = null
-          nextUpdatedTime = null
-          val dungeonDocument = if (previewLockFile != null)
-            getDocumentFromPath(previewLockFile)!!
-          else
-            document ?: previousDocument
+//        val updatedTime = nextUpdatedTime
+        val localPreviousDocument = previousDocument
+        val node = if (localPreviousDocument != null) getDocumentMetadataService().getPreviewNode(localPreviousDocument) else null
+        val localPreviewLockFile = getPreviewFileLock()
+        previewLockFile = localPreviewLockFile
+//        if (localPreviewLockFile != previewLockFile || node != state?.node) {
+//        nextUpdatedDocument = null
+//        nextUpdatedTime = null
+        val dungeonDocument = if (localPreviewLockFile != null)
+          getDocumentFromPath(localPreviewLockFile)!!
+        else
+          document ?: previousDocument
 
-          if (dungeonDocument != null) {
-            val response = getDungeonAndErrors(project, dungeonDocument)
-            if (response != null) {
-              val (dungeon, errors) = response
-              println("Active document contents changed ${dungeon.graph.hashCode()}")
-              update(dungeon, errors)
-            }
-          }
+        val newDungeon = if (dungeonDocument != null)
+          getDungeonWithoutErrors(project, dungeonDocument)
+        else
+          null
+
+        if (newDungeon?.graph != state?.graph || node != state?.node) {
+          println("Active document contents changed")
+          update(newDungeon)
         }
       }
 
@@ -143,9 +128,8 @@ class PreviewContainer(project: Project, contentManager: ContentManager) : JPane
     }
   }
 
-  fun update(dungeon: Dungeon?, errors: ParsingErrors) {
+  fun update(dungeon: Dungeon?) {
     lastDungeon = dungeon
-    lastErrors = errors
     val documentMetadata = getDocumentMetadataService()
     val document = previousDocument
     val node = if (document != null)
@@ -153,16 +137,16 @@ class PreviewContainer(project: Project, contentManager: ContentManager) : JPane
     else
       null
 
-    update(this, document, dungeon, errors, node)
+    update(this, document, dungeon, listOf(), node)
   }
 
+  // For some reason dispose is getting called more than once when closing the application
   override fun dispose() {
     val document = previousDocument
     if (document != null) {
-      println("Preview Listener - Final Remove ${getDocumentFile(document)!!.name}")
+      previousDocument = null // Make sure this is null because calling removeDocumentListener a second time will log an error
       document.removeDocumentListener(documentListener)
     }
-    connection.disconnect()
   }
 }
 
@@ -254,13 +238,22 @@ fun updatePreview(
   }
   val state = updatePreviewState(document, type, graph, timestamp, preview, node)
   // The layout of new preview children isn't fully initialized until after this UI tick
-  SwingUtilities.invokeLater {
-    val display = preview.display
-    if (display != null) {
-      if (display.content.width != 0) {
-        display.update(state)
+  val display = preview.display
+  if (display != null) {
+    var i = 0
+    fun tryUpdate() {
+      if (i++ < 100) {
+        SwingUtilities.invokeLater {
+          if (display.content.width != 0) {
+            println("Updating preview at try $i")
+            display.update(state)
+          } else {
+            tryUpdate()
+          }
+        }
       }
     }
+    tryUpdate()
   }
 }
 
