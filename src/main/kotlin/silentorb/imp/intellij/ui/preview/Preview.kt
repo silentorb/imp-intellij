@@ -315,6 +315,7 @@ fun update(container: PreviewContainer, document: Document?, dungeon: Dungeon?, 
     container.revalidate()
     container.repaint()
   } else {
+    println("Updating preview")
     updatePreview(document, dungeon.graph, container, System.currentTimeMillis(), node)
   }
 }

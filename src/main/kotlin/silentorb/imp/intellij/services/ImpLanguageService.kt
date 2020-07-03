@@ -10,7 +10,9 @@ import silentorb.imp.core.*
 import silentorb.imp.execution.Library
 import silentorb.imp.execution.combineLibraries
 import silentorb.imp.execution.execute
+import silentorb.imp.intellij.ui.misc.getDocumentFromPath
 import silentorb.imp.library.standard.standardLibrary
+import silentorb.imp.parsing.general.GetCode
 import silentorb.imp.parsing.general.ParsingResponse
 import silentorb.imp.parsing.parser.parseToDungeon
 import silentorb.mythic.aura.generation.imp.auraLibrary
@@ -24,6 +26,10 @@ data class DungeonArtifact(
     val response: ParsingResponse<Dungeon>,
     val timestamp: Long
 )
+
+val getCodeFromDocument: GetCode = { path ->
+  getDocumentFromPath(path)?.text
+}
 
 @Service
 class ImpLanguageService {
@@ -44,7 +50,7 @@ class ImpLanguageService {
   }
 
   fun getOrCreateWorkspaceArtifact(childPath: Path): CampaignResponse<Workspace>? {
-    val workspaceResponse = loadContainingWorkspace(library, childPath)
+    val workspaceResponse = loadContainingWorkspace(getCodeFromDocument, library, childPath)
     if (workspaceResponse != null) {
       workspaceArtifacts[workspaceResponse.value.path] = workspaceResponse
     }
@@ -61,6 +67,7 @@ class ImpLanguageService {
     val actualFile = FileDocumentManager.getInstance().getFile(document)!!
     val filePath = Paths.get(actualFile.path)
 
+    println("New artifact: $filePath")
     val workspaceResponse = getOrCreateWorkspaceArtifact(filePath)
     val moduleDirectory = findContainingModule(filePath)
     val response = if (workspaceResponse != null && moduleDirectory != null) {
@@ -68,12 +75,15 @@ class ImpLanguageService {
       val moduleName = moduleDirectory.fileName.toString()
       val fileName = filePath.fileName.toString().split(".").first()
       val module = workspace.modules[moduleName]
-      if (module != null)
+      if (module != null) {
+        println("Sending artifact: $filePath")
+        println("Hashes ${existing?.response?.value?.hashCode() ?: "none"} ${module.dungeons[fileName]?.hashCode() ?: "none"}")
+        println(module.dungeons[fileName]?.graph?.values?.values?.last())
         ParsingResponse(
             module.dungeons[fileName] ?: emptyDungeon,
             parsingErrors
         )
-      else
+      } else
         ParsingResponse(
             emptyDungeon,
             parsingErrors

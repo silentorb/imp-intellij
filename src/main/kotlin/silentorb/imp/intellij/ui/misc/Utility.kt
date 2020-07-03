@@ -26,6 +26,7 @@ import java.awt.BorderLayout
 import java.awt.event.ComponentEvent
 import java.awt.event.ComponentListener
 import java.io.File
+import java.nio.file.Path
 import javax.swing.JComponent
 import javax.swing.JPanel
 
@@ -150,3 +151,6 @@ fun getDocumentFromPath(path: String): Document? {
   else
     null
 }
+
+fun getDocumentFromPath(path: Path): Document? =
+    getDocumentFromPath(path.toString())

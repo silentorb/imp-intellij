@@ -136,7 +136,9 @@ fun sampleMesh(
   vertexLock.unlock()
 
   thread(start = true) {
+    println("Generating mesh $hash")
     val rawMesh = generateShadedMesh(getDistance, getShading)
+    println("Finished generating mesh $hash")
     vertexLock.lock()
     if (currentGraphHash != hash) {
       vertexLock.unlock()
