@@ -13,7 +13,6 @@ import silentorb.imp.execution.execute
 import silentorb.imp.intellij.ui.misc.getDocumentFromPath
 import silentorb.imp.library.standard.standardLibrary
 import silentorb.imp.parsing.general.GetCode
-import silentorb.imp.parsing.general.ParsingResponse
 import silentorb.imp.parsing.parser.parseToDungeon
 import silentorb.mythic.aura.generation.imp.auraLibrary
 import silentorb.mythic.fathom.fathomLibrary
@@ -23,7 +22,7 @@ import java.nio.file.Paths
 import java.util.*
 
 data class DungeonArtifact(
-    val response: ParsingResponse<Dungeon>,
+    val response: Response<Dungeon>,
     val timestamp: Long
 )
 
@@ -36,7 +35,7 @@ class ImpLanguageService {
   val context: List<Namespace>
   val functions: FunctionImplementationMap
   val dungeonArtifacts: WeakHashMap<PsiFile, DungeonArtifact> = WeakHashMap()
-  val workspaceArtifacts: WeakHashMap<Path, CampaignResponse<Workspace>> = WeakHashMap()
+  val workspaceArtifacts: WeakHashMap<Path, Response<Workspace>> = WeakHashMap()
   val library: Library = combineLibraries(
       standardLibrary(),
       auraLibrary(),
@@ -49,7 +48,7 @@ class ImpLanguageService {
     functions = library.implementation
   }
 
-  fun getOrCreateWorkspaceArtifact(childPath: Path): CampaignResponse<Workspace>? {
+  fun getOrCreateWorkspaceArtifact(childPath: Path): Response<Workspace>? {
     val workspaceResponse = loadContainingWorkspace(getCodeFromDocument, library, childPath)
     if (workspaceResponse != null) {
       workspaceArtifacts[workspaceResponse.value.path] = workspaceResponse
@@ -57,55 +56,58 @@ class ImpLanguageService {
     return workspaceResponse
   }
 
-  fun getArtifact(document: Document, file: PsiFile): ParsingResponse<Dungeon> {
-    val existing = dungeonArtifacts[file]
-    if (existing != null && existing.timestamp == document.modificationStamp)
-      return existing.response
+  fun getArtifact(document: Document, file: PsiFile): Response<Dungeon> {
+    return try {
+      val existing = dungeonArtifacts[file]
+      if (existing != null && existing.timestamp == document.modificationStamp)
+        return existing.response
 
-    // Lock down the timestamp in case it changes while parsing.
-    val timestamp = document.modificationStamp
-    val actualFile = FileDocumentManager.getInstance().getFile(document)!!
-    val filePath = Paths.get(actualFile.path)
+      // Lock down the timestamp in case it changes while parsing.
+      val timestamp = document.modificationStamp
+      val actualFile = FileDocumentManager.getInstance().getFile(document)!!
+      val filePath = Paths.get(actualFile.path)
 
-    println("New artifact: $filePath")
-    val workspaceResponse = getOrCreateWorkspaceArtifact(filePath)
-    val moduleDirectory = findContainingModule(filePath)
-    val response = if (workspaceResponse != null && moduleDirectory != null) {
-      val (workspace, _, parsingErrors) = workspaceResponse
-      val moduleName = moduleDirectory.fileName.toString()
-      val fileName = filePath.fileName.toString().split(".").first()
-      val module = workspace.modules[moduleName]
-      if (module != null) {
-        println("Sending artifact: $filePath")
-        println("Hashes ${existing?.response?.value?.hashCode() ?: "none"} ${module.dungeons[fileName]?.hashCode() ?: "none"}")
-        println(module.dungeons[fileName]?.graph?.values?.values?.last())
-        ParsingResponse(
-            module.dungeons[fileName] ?: emptyDungeon,
-            parsingErrors
+      println("New artifact: $filePath")
+      val workspaceResponse = getOrCreateWorkspaceArtifact(filePath)
+      val moduleDirectory = findContainingModule(filePath)
+      val response = if (workspaceResponse != null && moduleDirectory != null) {
+        val (workspace, parsingErrors) = workspaceResponse
+        val moduleName = moduleDirectory.fileName.toString()
+        val fileName = filePath.fileName.toString().split(".").first()
+        val module = workspace.modules[moduleName]
+        if (module != null) {
+          println("Sending artifact: $filePath")
+          println("Hashes ${existing?.response?.value?.hashCode() ?: "none"} ${module.dungeons[fileName]?.hashCode() ?: "none"}")
+          println(module.dungeons[fileName]?.graph?.values?.values?.last())
+          Response(
+              module.dungeons[fileName] ?: emptyDungeon,
+              parsingErrors
+          )
+        } else
+          Response(
+              emptyDungeon,
+              parsingErrors
+          )
+      } else {
+        val (dungeon, dungeonResponse) = parseToDungeon(actualFile.path, context)(document.text)
+        Response(
+            dungeon.copy(
+                graph = mergeNamespaces(context + dungeon.graph)
+            ),
+            dungeonResponse
         )
-      } else
-        ParsingResponse(
-            emptyDungeon,
-            parsingErrors
-        )
-    } else {
-      val (dungeon, dungeonResponse) = parseToDungeon(actualFile.path, context)(document.text)
-      ParsingResponse(
-          dungeon.copy(
-              graph = mergeNamespaces(context + dungeon.graph)
-          ),
-          dungeonResponse
+      }
+
+      val artifact = DungeonArtifact(
+          response = response,
+          timestamp = timestamp
       )
+      dungeonArtifacts[file] = artifact
+      return response
+    } catch (error: Error) {
+      Response(emptyDungeon, listOf())
     }
-
-    val artifact = DungeonArtifact(
-        response = response,
-        timestamp = timestamp
-    )
-    dungeonArtifacts[file] = artifact
-    return response
   }
-
 }
 
 fun getImpLanguageService(): ImpLanguageService =
@@ -117,10 +119,10 @@ fun initialContext() =
 fun initialFunctions() =
     getImpLanguageService().functions
 
-fun getExistingArtifact(file: PsiFile): ParsingResponse<Dungeon>? =
+fun getExistingArtifact(file: PsiFile): Response<Dungeon>? =
     getImpLanguageService().dungeonArtifacts[file]?.response
 
-fun getWorkspaceArtifact(path: Path): CampaignResponse<Workspace>? =
+fun getWorkspaceArtifact(path: Path): Response<Workspace>? =
     getImpLanguageService().getOrCreateWorkspaceArtifact(path)
 
 fun executeGraph(file: Path, functions: FunctionImplementationMap, graph: Graph, node: PathKey?): Any? {

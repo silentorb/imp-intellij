@@ -12,16 +12,11 @@ import com.intellij.psi.PsiFile
 import com.intellij.psi.PsiFileFactory
 import com.intellij.psi.impl.PsiFileFactoryImpl
 import com.intellij.psi.util.elementType
-import silentorb.imp.core.Dungeon
-import silentorb.imp.core.NodeMap
-import silentorb.imp.core.PathKey
-import silentorb.imp.core.isInRange
+import silentorb.imp.core.*
 import silentorb.imp.intellij.language.ImpLanguage
 import silentorb.imp.intellij.misc.ImpFileType
 import silentorb.imp.intellij.services.getImpLanguageService
 import silentorb.imp.intellij.ui.controls.PsiElementWrapper
-import silentorb.imp.parsing.general.ParsingErrors
-import silentorb.imp.parsing.general.ParsingResponse
 import java.awt.BorderLayout
 import java.awt.event.ComponentEvent
 import java.awt.event.ComponentListener
@@ -37,7 +32,7 @@ fun replacePanelContents(panel: JPanel, child: JComponent) {
   panel.repaint()
 }
 
-fun getDungeonAndErrors(project: Project, document: Document): ParsingResponse<Dungeon>? {
+fun getDungeonAndErrors(project: Project, document: Document): Response<Dungeon>? {
   val psiFile = PsiDocumentManager.getInstance(project).getPsiFile(document)
   return if (psiFile != null)
     getImpLanguageService().getArtifact(document, psiFile)
@@ -57,7 +52,7 @@ fun getDungeonWithoutErrors(project: Project, document: Document): Dungeon? {
     null
 }
 
-fun getDungeonAndErrors(project: Project, file: PsiFile): ParsingResponse<Dungeon>? {
+fun getDungeonAndErrors(project: Project, file: PsiFile): Response<Dungeon>? {
   val document = PsiDocumentManager.getInstance(project).getDocument(file)
   return if (document != null)
     getImpLanguageService().getArtifact(document, file)
@@ -65,7 +60,7 @@ fun getDungeonAndErrors(project: Project, file: PsiFile): ParsingResponse<Dungeo
     null
 }
 
-fun watchParsed(project: Project, onChange: (Dungeon?, Document?, ParsingErrors) -> Unit): OnActiveFileChange {
+fun watchParsed(project: Project, onChange: (Dungeon?, Document?, ImpErrors) -> Unit): OnActiveFileChange {
   var lastFile: VirtualFile? = null
   return { file ->
     if (file !== lastFile) {

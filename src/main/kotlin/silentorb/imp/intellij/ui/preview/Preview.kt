@@ -20,9 +20,7 @@ import silentorb.imp.execution.ExecutionStep
 import silentorb.imp.execution.prepareExecutionSteps
 import silentorb.imp.intellij.services.*
 import silentorb.imp.intellij.ui.misc.*
-import silentorb.imp.parsing.general.ParsingErrors
 import silentorb.imp.parsing.general.englishText
-import silentorb.imp.parsing.general.formatError
 import silentorb.mythic.spatial.Vector2i
 import java.awt.BorderLayout
 import java.nio.file.Path
@@ -54,7 +52,7 @@ class PreviewContainer(project: Project, contentManager: ContentManager) : JPane
   var display: PreviewDisplay? = null
   var previousDocument: Document? = null
   var lastDungeon: Dungeon? = null
-  var lastErrors: ParsingErrors = listOf()
+  var lastErrors: ImpErrors = listOf()
   var state: PreviewState? = null
   var nextUpdatedDocument: Document? = null
   var nextUpdatedTime: Long? = null
@@ -236,10 +234,9 @@ fun updatePreview(
       replacePanelContents(preview, messagePanel("No preview for type $typeName"))
     }
   }
-  val state = updatePreviewState(document, type, graph, timestamp, preview, node)
-  // The layout of new preview children isn't fully initialized until after this UI tick
   val display = preview.display
   if (display != null) {
+    val state = updatePreviewState(document, type, graph, timestamp, preview, node)
     var i = 0
     fun tryUpdate() {
       if (i++ < 100) {
@@ -299,7 +296,7 @@ fun updatePreview(document: Document?, graph: Graph, preview: PreviewContainer, 
   }
 }
 
-fun update(container: PreviewContainer, document: Document?, dungeon: Dungeon?, errors: ParsingErrors, node: PathKey?) {
+fun update(container: PreviewContainer, document: Document?, dungeon: Dungeon?, errors: ImpErrors, node: PathKey?) {
   if (dungeon == null) {
     container.state = null
     container.display = null
