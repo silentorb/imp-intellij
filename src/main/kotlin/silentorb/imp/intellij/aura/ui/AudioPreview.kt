@@ -33,7 +33,7 @@ class AudioPreviewPanel : SimpleToolWindowPanel(true), Disposable {
 
 fun rebuildAudio(state: PreviewState, panel: AudioPreviewPanel) {
   val functions = initialFunctions()
-  val (buffer, channels) = renderImpAudio(getDocumentPath(state.document!!), functions, state.graph, state.node)
+  val (buffer, channels) = renderImpAudio(getDocumentPath(state.document!!), functions, state.dungeon.graph, state.node)
   playSound(buffer, channels, sampleRate)
 }
 

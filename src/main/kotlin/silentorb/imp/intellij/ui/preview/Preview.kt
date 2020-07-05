@@ -38,7 +38,7 @@ data class PreviewDisplay(
 
 data class PreviewState(
     val document: Document?,
-    val graph: Graph,
+    val dungeon: Dungeon,
     val node: PathKey?,
     val steps: List<ExecutionStep>,
     val type: TypeHash,
@@ -111,7 +111,7 @@ class PreviewContainer(project: Project, contentManager: ContentManager) : JPane
         else
           null
 
-        if (newDungeon?.graph != state?.graph || node != state?.node) {
+        if (newDungeon != state?.dungeon || node != state?.node) {
           println("Active document contents changed")
           update(newDungeon)
         }
@@ -162,15 +162,22 @@ fun newPreview(document: Document?, type: TypeHash, dimensions: Vector2i): Previ
 
 private val sourceLock = ReentrantLock()
 
+fun getOutputNode(document: Document?, node: PathKey?, dungeon: Dungeon): PathKey? {
+  return node ?: if (document != null)
+    getGraphOutputNode(dungeon, getDocumentFile(document)?.canonicalPath!!)
+  else
+    null
+}
+
 fun updatePreviewState(
     document: Document?,
     type: TypeHash,
-    graph: Graph,
+    dungeon: Dungeon,
     timestamp: Long,
     container: PreviewContainer,
     node: PathKey?
 ): PreviewState {
-  val output = node ?: getGraphOutputNode(graph)
+  val output = getOutputNode(document, node, dungeon)
   val steps = if (output != null && document != null) {
     val filePath = getDocumentPath(document)
     val workspaceResponse = getWorkspaceArtifact(filePath)
@@ -187,7 +194,7 @@ fun updatePreviewState(
         )
         prepareExecutionSteps(context, functions, setOf(output))
       } else
-        prepareExecutionSteps(listOf(graph), initialFunctions(), setOf(output))
+        prepareExecutionSteps(listOf(dungeon.graph), initialFunctions(), setOf(output))
     } catch (error: Error) {
       listOf<ExecutionStep>()
     }
@@ -198,7 +205,7 @@ fun updatePreviewState(
   val state = PreviewState(
       document = document,
       type = type,
-      graph = graph,
+      dungeon = dungeon,
       node = node,
       steps = steps,
       timestamp = timestamp
@@ -211,7 +218,7 @@ fun updatePreviewState(
 fun updatePreview(
     document: Document?,
     preview: PreviewContainer,
-    graph: Graph,
+    dungeon: Dungeon,
     type: TypeHash,
     timestamp: Long,
     node: PathKey?
@@ -230,13 +237,13 @@ fun updatePreview(
         Disposer.register(preview, component)
       }
     } else {
-      val typeName = graph.typings.typeNames[type] ?: "???"
+      val typeName = dungeon.graph.typings.typeNames[type] ?: "???"
       replacePanelContents(preview, messagePanel("No preview for type $typeName"))
     }
   }
   val display = preview.display
   if (display != null) {
-    val state = updatePreviewState(document, type, graph, timestamp, preview, node)
+    val state = updatePreviewState(document, type, dungeon, timestamp, preview, node)
     var i = 0
     fun tryUpdate() {
       if (i++ < 100) {
@@ -273,20 +280,20 @@ fun trySetPreviewTimestamp(timestamp: Long): Boolean {
   }
 }
 
-fun updatePreview(document: Document?, graph: Graph, preview: PreviewContainer, timestamp: Long, node: PathKey?) {
+fun updatePreview(document: Document?, dungeon: Dungeon, preview: PreviewContainer, timestamp: Long, node: PathKey?) {
   if (!trySetPreviewTimestamp(timestamp))
     return
 
-  val output = node ?: getGraphOutputNode(graph)
-  val type = graph.returnTypes[output]
+  val output = getOutputNode(document, node, dungeon)
+  val type = dungeon.graph.returnTypes[output]
   if (type != null) {
-    updatePreview(document, preview, graph, type, timestamp, node)
+    updatePreview(document, preview, dungeon, type, timestamp, node)
   } else {
     sourceLock.lock()
     preview.state = PreviewState(
         document = document,
         type = unknownType.hash,
-        graph = graph,
+        dungeon = dungeon,
         node = node,
         steps = listOf(),
         timestamp = timestamp
@@ -313,6 +320,6 @@ fun update(container: PreviewContainer, document: Document?, dungeon: Dungeon?, 
     container.repaint()
   } else {
     println("Updating preview")
-    updatePreview(document, dungeon.graph, container, System.currentTimeMillis(), node)
+    updatePreview(document, dungeon, container, System.currentTimeMillis(), node)
   }
 }

@@ -154,15 +154,15 @@ fun sampleMesh(
 fun rebuildPreviewSource(state: PreviewState, panel: SubstancePreviewPanel) {
   panel.startedDrawing = true
   val functions = initialFunctions()
-  val value = executeGraph(getDocumentPath(state.document!!), functions, state.graph, state.node)
+  val value = executeGraph(getDocumentPath(state.document!!), functions, state.dungeon.graph, state.node)
   if (value != null) {
     when (state.type) {
       distanceFunctionType.hash -> {
-        sampleMesh(state.graph.hashCode(), panel, value as DistanceFunction, null) { newShading(Vector3(1f, 0f, 0f)) }
+        sampleMesh(state.dungeon.graph.hashCode(), panel, value as DistanceFunction, null) { newShading(Vector3(1f, 0f, 0f)) }
       }
       modelFunctionType.hash -> {
         val model = value as ModelFunction
-        sampleMesh(state.graph.hashCode(), panel, model.form, model.collision, model.shading)
+        sampleMesh(state.dungeon.graph.hashCode(), panel, model.form, model.collision, model.shading)
       }
       else -> throw Error("Unsupported fathom preview type: ${state.type}")
     }

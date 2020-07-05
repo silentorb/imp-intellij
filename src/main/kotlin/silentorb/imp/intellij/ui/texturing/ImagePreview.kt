@@ -140,7 +140,7 @@ fun resizeImagePreview(container: ImagePreviewPanel, dimensions: Vector2i) {
 fun updateImagePreview(state: PreviewState, container: ImagePreviewPanel) {
   container.state = state
   val timestamp = state.timestamp
-  val graph = state.graph
+  val graph = state.dungeon.graph
   val steps = state.steps
   val type = state.type
   container.startedDrawing = true

@@ -5,6 +5,7 @@ import com.intellij.openapi.components.ServiceManager
 import com.intellij.openapi.editor.Document
 import com.intellij.openapi.fileEditor.FileDocumentManager
 import com.intellij.psi.PsiFile
+import com.jetbrains.rd.util.firstOrNull
 import silentorb.imp.campaign.*
 import silentorb.imp.core.*
 import silentorb.imp.execution.Library
@@ -80,7 +81,7 @@ class ImpLanguageService {
           println("Hashes ${existing?.response?.value?.hashCode() ?: "none"} ${module.dungeons[fileName]?.hashCode() ?: "none"}")
           println(module.dungeons[fileName]?.graph?.values?.values?.last())
           Response(
-              module.dungeons[fileName] ?: emptyDungeon,
+              module.dungeons.values.firstOrNull() ?: emptyDungeon,
               parsingErrors
           )
         } else
