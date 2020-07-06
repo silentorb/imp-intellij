@@ -36,7 +36,6 @@ class ControlPanel(val project: Project, contentManager: ContentManager) : JPane
       if (file == null) {
         clearControlList(this)
       } else {
-        // Todo: Somehow get shared/cached dungeon from ImpParser
         val caretOffset = getCurrentEditorCaretOffset(project, file)
         lastCaretOffset = caretOffset
         if (caretOffset != null) {

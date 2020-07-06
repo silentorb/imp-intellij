@@ -4,6 +4,7 @@ import com.intellij.openapi.components.Service
 import com.intellij.openapi.components.ServiceManager
 import com.intellij.openapi.editor.Document
 import com.intellij.openapi.fileEditor.FileDocumentManager
+import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.psi.PsiFile
 import com.jetbrains.rd.util.firstOrNull
 import silentorb.imp.campaign.*
@@ -57,28 +58,18 @@ class ImpLanguageService {
     return workspaceResponse
   }
 
-  fun getArtifact(document: Document, file: PsiFile): Response<Dungeon> {
-    return try {
-      val existing = dungeonArtifacts[file]
-      if (existing != null && existing.timestamp == document.modificationStamp)
-        return existing.response
-
-      // Lock down the timestamp in case it changes while parsing.
-      val timestamp = document.modificationStamp
-      val actualFile = FileDocumentManager.getInstance().getFile(document)!!
-      val filePath = Paths.get(actualFile.path)
-
-      println("New artifact: $filePath")
+  fun processWorkspaceOrModule(filePath: Path, actualFile: VirtualFile, document: Document): Response<Dungeon> {
+    try {
       val workspaceResponse = getOrCreateWorkspaceArtifact(filePath)
       val moduleDirectory = findContainingModule(filePath)
-      val response = if (workspaceResponse != null && moduleDirectory != null) {
+      return if (workspaceResponse != null && moduleDirectory != null) {
         val (workspace, parsingErrors) = workspaceResponse
         val moduleName = moduleDirectory.fileName.toString()
         val fileName = filePath.fileName.toString().split(".").first()
         val module = workspace.modules[moduleName]
         if (module != null) {
           println("Sending artifact: $filePath")
-          println("Hashes ${existing?.response?.value?.hashCode() ?: "none"} ${module.dungeons[fileName]?.hashCode() ?: "none"}")
+//          println("Hashes ${existing?.response?.value?.hashCode() ?: "none"} ${module.dungeons[fileName]?.hashCode() ?: "none"}")
           println(module.dungeons[fileName]?.graph?.values?.values?.last())
           Response(
               module.dungeons.values.firstOrNull() ?: emptyDungeon,
@@ -98,16 +89,31 @@ class ImpLanguageService {
             dungeonResponse
         )
       }
-
-      val artifact = DungeonArtifact(
-          response = response,
-          timestamp = timestamp
-      )
-      dungeonArtifacts[file] = artifact
-      return response
     } catch (error: Error) {
-      Response(emptyDungeon, listOf())
+      return Response(emptyDungeon, listOf())
     }
+  }
+
+  fun getArtifact(document: Document, file: PsiFile): Response<Dungeon> {
+    val existing = dungeonArtifacts[file]
+    if (existing != null && existing.timestamp == document.modificationStamp)
+      return existing.response
+
+    // Lock down the timestamp in case it changes while parsing.
+    val timestamp = document.modificationStamp
+    val actualFile = FileDocumentManager.getInstance().getFile(document)!!
+    val filePath = Paths.get(actualFile.path)
+
+    println("New artifact: $filePath")
+
+    val response = processWorkspaceOrModule(filePath, actualFile, document)
+    val artifact = DungeonArtifact(
+        response = response,
+        timestamp = timestamp
+    )
+    println("Caching artifact: $filePath")
+    dungeonArtifacts[file] = artifact
+    return response
   }
 }
 

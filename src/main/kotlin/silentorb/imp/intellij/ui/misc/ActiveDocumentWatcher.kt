@@ -14,8 +14,7 @@ import java.awt.KeyboardFocusManager
 
 typealias OnActiveFileChange = (VirtualFile?) -> Unit
 
-typealias StaleCheck = (Project, VirtualFile) -> Boolean
-
+// TODO: Deprecated - Use getActiveVirtualFile instead
 class ActiveDocumentWatcher(val project: Project, val onChange: OnActiveFileChange) : Disposable {
   var firstRun = true
 
