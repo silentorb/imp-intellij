@@ -1,7 +1,6 @@
 package silentorb.imp.intellij.ui.preview
 
 import com.intellij.openapi.Disposable
-import com.intellij.openapi.actionSystem.ActionToolbar
 import com.intellij.openapi.editor.Document
 import com.intellij.openapi.fileEditor.FileDocumentManager
 import com.intellij.openapi.project.DumbService
@@ -11,40 +10,21 @@ import com.intellij.ui.components.JBLabel
 import com.intellij.ui.components.JBScrollPane
 import com.intellij.ui.content.ContentManager
 import com.intellij.util.ui.TimerUtil
-import silentorb.imp.campaign.findContainingModule
-import silentorb.imp.campaign.getModulesExecutionArtifacts
 import silentorb.imp.core.*
-import silentorb.imp.execution.ExecutionStep
-import silentorb.imp.execution.prepareExecutionSteps
+import silentorb.imp.intellij.common.getExecutionSteps
+import silentorb.imp.intellij.common.getOutputNode
 import silentorb.imp.intellij.services.*
-import silentorb.imp.intellij.ui.misc.*
+import silentorb.imp.intellij.ui.misc.getActiveVirtualFile
+import silentorb.imp.intellij.ui.misc.getDocumentFromPath
+import silentorb.imp.intellij.ui.misc.getDungeonWithoutErrors
+import silentorb.imp.intellij.ui.misc.replacePanelContents
 import silentorb.imp.parsing.general.englishText
 import silentorb.mythic.spatial.Vector2i
 import java.awt.BorderLayout
-import java.nio.file.Path
-import java.nio.file.Paths
 import java.util.concurrent.locks.ReentrantLock
 import javax.swing.JComponent
 import javax.swing.JPanel
 import javax.swing.SwingUtilities
-
-data class PreviewDisplay(
-    val content: JComponent,
-    val toolbar: ActionToolbar? = null,
-    val update: (PreviewState) -> Unit
-)
-
-data class PreviewState(
-    val document: Document?,
-    val dungeon: Dungeon,
-    val node: PathKey?,
-    val steps: List<ExecutionStep>,
-    val type: TypeHash,
-    val timestamp: Long
-)
-
-fun getDocumentPath(document: Document): Path =
-    Paths.get(FileDocumentManager.getInstance().getFile(document)!!.path)
 
 class PreviewContainer(val project: Project, contentManager: ContentManager) : JPanel(), Disposable {
   var display: PreviewDisplay? = null
@@ -90,9 +70,12 @@ class PreviewContainer(val project: Project, contentManager: ContentManager) : J
       null
 
     if (newDungeon != state?.dungeon || node != state?.node || nextDocument != document) {
-      document = nextDocument
+      if (document != nextDocument && nextDocument != null && document != null) {
+        val k = 0
+      }
       println("Active document contents changed")
       update(this, nextDocument, newDungeon, listOf(), node)
+      document = nextDocument
     }
   }
 
@@ -114,13 +97,6 @@ fun newPreview(document: Document?, type: TypeHash, dimensions: Vector2i): Previ
 
 private val sourceLock = ReentrantLock()
 
-fun getOutputNode(document: Document?, node: PathKey?, dungeon: Dungeon): PathKey? {
-  return node ?: if (document != null)
-    getGraphOutputNode(dungeon, getDocumentFile(document)?.canonicalPath!!)
-  else
-    null
-}
-
 fun updatePreviewState(
     document: Document?,
     type: TypeHash,
@@ -130,28 +106,10 @@ fun updatePreviewState(
     node: PathKey?
 ): PreviewState {
   val output = getOutputNode(document, node, dungeon)
-  val steps = if (output != null && document != null) {
-    val filePath = getDocumentPath(document)
-    val workspaceResponse = getWorkspaceArtifact(filePath)
-    val moduleDirectory = findContainingModule(filePath)
-    try {
-      if (workspaceResponse != null && moduleDirectory != null && workspaceResponse.value.modules.containsKey(
-              moduleDirectory.fileName.toString()
-          )
-      ) {
-        val (context, functions) = getModulesExecutionArtifacts(
-            initialFunctions(),
-            initialContext(),
-            workspaceResponse.value.modules
-        )
-        prepareExecutionSteps(context, functions, setOf(output))
-      } else
-        prepareExecutionSteps(listOf(dungeon.graph), initialFunctions(), setOf(output))
-    } catch (error: Error) {
-      listOf<ExecutionStep>()
-    }
+  val executionUnit = if (output != null && document != null) {
+    getExecutionSteps(document, output, dungeon)
   } else
-    listOf()
+    null
 
   sourceLock.lock()
   val state = PreviewState(
@@ -159,7 +117,7 @@ fun updatePreviewState(
       type = type,
       dungeon = dungeon,
       node = node,
-      steps = steps,
+      executionUnit = executionUnit,
       timestamp = timestamp
   )
   container.state = state
@@ -175,7 +133,7 @@ fun updatePreview(
     timestamp: Long,
     node: PathKey?
 ) {
-  if (type != preview.state?.type) {
+  if (type != preview.state?.type || document != preview.document) {
     val newDisplay = newPreview(document, type, Vector2i(preview.width))
     if (newDisplay != null) {
       println("New preview display")
@@ -249,7 +207,7 @@ fun updatePreview(document: Document?, dungeon: Dungeon, preview: PreviewContain
         type = unknownType.hash,
         dungeon = dungeon,
         node = node,
-        steps = listOf(),
+        executionUnit = null,
         timestamp = timestamp
     )
     sourceLock.unlock()

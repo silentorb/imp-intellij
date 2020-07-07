@@ -3,14 +3,13 @@ package silentorb.imp.intellij.ui.texturing
 import com.intellij.ide.util.PropertiesComponent
 import com.intellij.openapi.Disposable
 import com.intellij.openapi.actionSystem.ActionManager
-import com.intellij.openapi.actionSystem.DefaultActionGroup
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.ui.SimpleToolWindowPanel
 import com.intellij.util.messages.MessageBusConnection
 import silentorb.imp.core.getGraphOutputNode
 import silentorb.imp.execution.OutputValues
 import silentorb.imp.execution.executeStep
-import silentorb.imp.intellij.fathoming.actions.DisplayModeAction
+import silentorb.imp.execution.executeToSingleValue
 import silentorb.imp.intellij.services.initialFunctions
 import silentorb.imp.intellij.messaging.ToggleNotifier
 import silentorb.imp.intellij.messaging.toggleTilingTopic
@@ -140,10 +139,12 @@ fun resizeImagePreview(container: ImagePreviewPanel, dimensions: Vector2i) {
 fun updateImagePreview(state: PreviewState, container: ImagePreviewPanel) {
   container.state = state
   val timestamp = state.timestamp
-  val graph = state.dungeon.graph
-  val steps = state.steps
+  val executionUnit = state.executionUnit
   val type = state.type
   container.startedDrawing = true
+
+  if (executionUnit == null)
+    return
 
   if (isPreviewOutdated(timestamp))
     return
@@ -155,7 +156,6 @@ fun updateImagePreview(state: PreviewState, container: ImagePreviewPanel) {
   }
   val dimensions = container.dimensions
   val cellDimensions = dimensions / cellCount
-  val functions = initialFunctions()
 
   if (container.width == 0) {
     val j = 0
@@ -166,14 +166,7 @@ fun updateImagePreview(state: PreviewState, container: ImagePreviewPanel) {
 //        println("$timestamp Canceled1")
         break
       }
-      var values: OutputValues = graph.values
-      val output = state.node ?: getGraphOutputNode(graph)
-      for (step in steps) {
-        values = executeStep(values, step)
-      }
-      val value = values[output]
-      if (value == null)
-        break
+      val value = executeToSingleValue(executionUnit)
 
       val sampleWriter = if (type == rgbSampler2dType.hash)
         newRgbSampleWriter(value as RgbSampler)

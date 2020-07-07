@@ -2,11 +2,12 @@ package silentorb.imp.intellij.fathoming.ui
 
 import com.intellij.openapi.Disposable
 import com.intellij.openapi.ui.SimpleToolWindowPanel
+import silentorb.imp.execution.executeSteps
+import silentorb.imp.execution.executeToSingleValue
 import silentorb.imp.intellij.fathoming.actions.DisplayModeAction
 import silentorb.imp.intellij.fathoming.state.FathomPreviewState
 import silentorb.imp.intellij.fathoming.state.getDisplayMode
 import silentorb.imp.intellij.fathoming.state.getFathomPreviewStateService
-import silentorb.imp.intellij.services.executeGraph
 import silentorb.imp.intellij.services.initialFunctions
 import silentorb.imp.intellij.ui.misc.resizeListener
 import silentorb.imp.intellij.ui.preview.*
@@ -106,20 +107,6 @@ fun updateMeshDisplay(panel: SubstancePreviewPanel, rawMesh: IndexedGeometry?) {
   }
 }
 
-fun flattenSamplePoints(points: List<SamplePoint>) =
-    points
-        .flatMap(::toFloatList)
-        .toFloatArray()
-
-fun rebuildPreview(panel: SubstancePreviewPanel) {
-  val dimensions = getPanelDimensions(panel)
-  panel.startedDrawing = true
-  val vertices = panel.rawMesh
-  if (vertices != null) {
-    updateMeshDisplay(vertices, dimensions, panel)
-  }
-}
-
 fun sampleMesh(
     hash: Int,
     panel: SubstancePreviewPanel,
@@ -136,9 +123,7 @@ fun sampleMesh(
   vertexLock.unlock()
 
   thread(start = true) {
-    println("Generating mesh $hash")
     val rawMesh = generateShadedMesh(getDistance, getShading)
-    println("Finished generating mesh $hash")
     vertexLock.lock()
     if (currentGraphHash != hash) {
       vertexLock.unlock()
@@ -153,16 +138,20 @@ fun sampleMesh(
 
 fun rebuildPreviewSource(state: PreviewState, panel: SubstancePreviewPanel) {
   panel.startedDrawing = true
-  val functions = initialFunctions()
-  val value = executeGraph(getDocumentPath(state.document!!), functions, state.dungeon.graph, state.node)
+  val executionUnit = state.executionUnit
+  val value = if (executionUnit != null)
+    executeToSingleValue(executionUnit)
+  else
+    null
+
   if (value != null) {
     when (state.type) {
       distanceFunctionType.hash -> {
-        sampleMesh(state.dungeon.graph.hashCode(), panel, value as DistanceFunction, null) { newShading(Vector3(1f, 0f, 0f)) }
+        sampleMesh(executionUnit.hashCode(), panel, value as DistanceFunction, null) { newShading(Vector3(1f, 0f, 0f)) }
       }
       modelFunctionType.hash -> {
         val model = value as ModelFunction
-        sampleMesh(state.dungeon.graph.hashCode(), panel, model.form, model.collision, model.shading)
+        sampleMesh(executionUnit.hashCode(), panel, model.form, model.collision, model.shading)
       }
       else -> throw Error("Unsupported fathom preview type: ${state.type}")
     }

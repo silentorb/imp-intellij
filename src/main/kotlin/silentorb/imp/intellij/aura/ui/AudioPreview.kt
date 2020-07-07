@@ -10,7 +10,7 @@ import silentorb.imp.intellij.services.initialFunctions
 import silentorb.imp.intellij.ui.preview.NewPreviewProps
 import silentorb.imp.intellij.ui.preview.PreviewDisplay
 import silentorb.imp.intellij.ui.preview.PreviewState
-import silentorb.imp.intellij.ui.preview.getDocumentPath
+import silentorb.imp.intellij.common.getDocumentPath
 import silentorb.mythic.aura.generation.AudioConfig
 import silentorb.mythic.aura.generation.AudioOutput
 import silentorb.mythic.aura.generation.renderAudioTo16bit
