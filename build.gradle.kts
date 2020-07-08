@@ -22,6 +22,7 @@ dependencies {
     implementation("silentorb.mythic:lookinglass")
     implementation("silentorb.mythic:mythic-desktop")
     implementation("silentorb.mythic:fathom")
+    implementation("silentorb.mythic:debugging")
 }
 
 intellij {

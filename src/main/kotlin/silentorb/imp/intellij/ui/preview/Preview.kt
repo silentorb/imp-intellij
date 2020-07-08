@@ -70,9 +70,6 @@ class PreviewContainer(val project: Project, contentManager: ContentManager) : J
       null
 
     if (newDungeon != state?.dungeon || node != state?.node || nextDocument != document) {
-      if (document != nextDocument && nextDocument != null && document != null) {
-        val k = 0
-      }
       println("Active document contents changed")
       update(this, nextDocument, newDungeon, listOf(), node)
       document = nextDocument

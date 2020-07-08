@@ -12,6 +12,7 @@ import silentorb.imp.intellij.services.initialFunctions
 import silentorb.imp.intellij.ui.misc.resizeListener
 import silentorb.imp.intellij.ui.preview.*
 import silentorb.imp.intellij.ui.texturing.newImageElement
+import silentorb.mythic.debugging.logExecutionTime
 import silentorb.mythic.fathom.misc.*
 import silentorb.mythic.lookinglass.IndexedGeometry
 import silentorb.mythic.lookinglass.toFloatList
@@ -123,7 +124,7 @@ fun sampleMesh(
   vertexLock.unlock()
 
   thread(start = true) {
-    val rawMesh = generateShadedMesh(getDistance, getShading)
+    val rawMesh = logExecutionTime("generateMesh")  { generateShadedMesh(getDistance, getShading) }
     vertexLock.lock()
     if (currentGraphHash != hash) {
       vertexLock.unlock()

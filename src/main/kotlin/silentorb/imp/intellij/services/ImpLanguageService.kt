@@ -17,6 +17,7 @@ import silentorb.imp.library.standard.standardLibrary
 import silentorb.imp.parsing.general.GetCode
 import silentorb.imp.parsing.parser.parseToDungeon
 import silentorb.mythic.aura.generation.imp.auraLibrary
+import silentorb.mythic.debugging.logExecutionTime
 import silentorb.mythic.fathom.fathomLibrary
 import silentorb.mythic.imaging.texturing.texturingLibrary
 import java.nio.file.Path
@@ -34,8 +35,6 @@ val getCodeFromDocument: GetCode = { path ->
 
 @Service
 class ImpLanguageService {
-  val context: List<Namespace>
-  val functions: FunctionImplementationMap
   val dungeonArtifacts: WeakHashMap<PsiFile, DungeonArtifact> = WeakHashMap()
   val workspaceArtifacts: WeakHashMap<Path, Response<Workspace>> = WeakHashMap()
   val library: Library = combineLibraries(
@@ -44,14 +43,13 @@ class ImpLanguageService {
       texturingLibrary(),
       fathomLibrary()
   )
-
-  init {
-    context = listOf(library.namespace)
-    functions = library.implementation
-  }
+  val context: List<Namespace> = listOf(library.namespace)
+  val functions: FunctionImplementationMap = library.implementation
 
   fun getOrCreateWorkspaceArtifact(childPath: Path): Response<Workspace>? {
-    val workspaceResponse = loadContainingWorkspace(getCodeFromDocument, library, childPath)
+    val workspaceResponse = logExecutionTime("loadWorkspace") {
+      loadContainingWorkspace(getCodeFromDocument, library, childPath)
+    }
     if (workspaceResponse != null) {
       workspaceArtifacts[workspaceResponse.value.path] = workspaceResponse
     }
