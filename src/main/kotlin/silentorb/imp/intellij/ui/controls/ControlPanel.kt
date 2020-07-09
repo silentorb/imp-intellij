@@ -50,7 +50,16 @@ class ControlPanel(val project: Project, contentManager: ContentManager) : JPane
               else
                 listOf(dungeon.graph)
 
-              updateControlPanel(getPsiElement(project, document), changePsiValue(project), context, this, dungeon, caretOffset, tracker)
+              updateControlPanel(
+                getPsiElement(project, document),
+                changePsiValue(project),
+                context,
+                this,
+                dungeon,
+                file.path,
+                caretOffset,
+                tracker
+              )
             }
           }
         }
@@ -65,8 +74,8 @@ class ControlPanel(val project: Project, contentManager: ContentManager) : JPane
 }
 
 data class ControlTracker(
-    val node: PathKey,
-    val range: Range
+  val node: PathKey,
+  val range: Range
 )
 
 fun clearControlList(controls: JPanel) {
@@ -76,27 +85,33 @@ fun clearControlList(controls: JPanel) {
 }
 
 data class PsiElementWrapper(
-    var element: PsiElement
+  var element: PsiElement
 )
 
 typealias GetPsiValue = (Int) -> PsiElementWrapper?
 typealias ChangePsiValue = (PsiElementWrapper, String) -> Unit
 
 data class ControlField(
-    val name: String,
-    val nodes: List<PathKey>,
-    val psiElements: List<PsiElementWrapper>,
-    val type: TypeHash,
-    val valueRange: NumericTypeConstraint?
+  val name: String,
+  val nodes: List<PathKey>,
+  val psiElements: List<PsiElementWrapper>,
+  val type: TypeHash,
+  val valueRange: NumericTypeConstraint?
 )
 
 typealias ComplexTypeControl = (ChangePsiValue, List<PsiElementWrapper>, List<Any>) -> JComponent
 
 private val complexTypeControls: Map<TypeHash, ComplexTypeControl> = mapOf(
-    newRgbTypeHash to ::newColorPicker
+  newRgbTypeHash to ::newColorPicker
 )
 
-fun newFieldControl(getPsiElement: GetPsiValue, context: Context, dungeon: Dungeon, node: PathKey, type: TypeHash?): ControlField? {
+fun newFieldControl(
+  getPsiElement: GetPsiValue,
+  context: Context,
+  dungeon: Dungeon,
+  node: PathKey,
+  type: TypeHash?
+): ControlField? {
   val graph = dungeon.graph
   val complexTypeControl = complexTypeControls[type]
   val parameters = getParameterConnections(context, node)
@@ -104,25 +119,25 @@ fun newFieldControl(getPsiElement: GetPsiValue, context: Context, dungeon: Dunge
   return if (type != null && parameters.any()) {
     val nodes = if (complexTypeControl != null) {
       dungeon.graph.connections
-          .filter { it.key.destination == node }
-          .map { it.value }
+        .filter { it.key.destination == node }
+        .map { it.value }
     } else
       listOf(node)
 
     val offsets = dungeon.graph.connections
-        .filter { it.key.destination == node }
-        .map { it.value }
-        .plus(node)
-        .mapNotNull { dungeon.nodeMap[it]?.range?.start?.index }
+      .filter { it.key.destination == node }
+      .map { it.value }
+      .plus(node)
+      .mapNotNull { dungeon.nodeMap[it]?.range?.start?.index }
 
     val psiElements = offsets.map(getPsiElement).filterNotNull()
     if (psiElements.any())
       ControlField(
-          name = parameters.keys.first().parameter,
-          nodes = nodes,
-          psiElements = psiElements,
-          type = type,
-          valueRange = resolveNumericTypeConstraint(type)(context)
+        name = parameters.keys.first().parameter,
+        nodes = nodes,
+        psiElements = psiElements,
+        type = type,
+        valueRange = resolveNumericTypeConstraint(type)(context)
       )
     else
       null
@@ -130,7 +145,12 @@ fun newFieldControl(getPsiElement: GetPsiValue, context: Context, dungeon: Dunge
     null
 }
 
-fun gatherControlFields(getPsiElement: GetPsiValue, context: Context, dungeon: Dungeon, node: PathKey): List<ControlField> {
+fun gatherControlFields(
+  getPsiElement: GetPsiValue,
+  context: Context,
+  dungeon: Dungeon,
+  node: PathKey
+): List<ControlField> {
   val graph = dungeon.graph
   val functionType = graph.implementationTypes[node]
   return if (functionType != null && !complexTypeControls.containsKey(functionType)) {
@@ -138,7 +158,13 @@ fun gatherControlFields(getPsiElement: GetPsiValue, context: Context, dungeon: D
     val connections = getArgumentConnections(context, node)
     connections.mapNotNull { connection ->
       val child = connection.value
-      newFieldControl(getPsiElement, context, dungeon, connection.value, graph.implementationTypes[child] ?: graph.returnTypes[child])
+      newFieldControl(
+        getPsiElement,
+        context,
+        dungeon,
+        connection.value,
+        graph.implementationTypes[child] ?: graph.returnTypes[child]
+      )
     }
   } else {
     listOfNotNull(newFieldControl(getPsiElement, context, dungeon, node, functionType))
@@ -157,8 +183,7 @@ fun updateControlList(changePsiValue: ChangePsiValue, values: Map<PathKey, Any>,
   } else if (complexTypeControls.containsKey(field.type)) {
     val childValues = nodes.mapNotNull { values[it] }
     row.add(complexTypeControls[field.type]!!(changePsiValue, psiElements, childValues))
-  }
-  else{
+  } else {
     return null
   }
   val label = JLabel(field.name, SwingConstants.RIGHT)
@@ -167,14 +192,17 @@ fun updateControlList(changePsiValue: ChangePsiValue, values: Map<PathKey, Any>,
   return row
 }
 
-fun updateControlPanel(getPsiElement: GetPsiValue, changePsiValue: ChangePsiValue, context: Context, controls: JPanel, dungeon: Dungeon, offset: Int, tracker: ControlTracker?): ControlTracker? {
-  val nodeRange = findNodeEntry(dungeon.nodeMap, offset)
+fun updateControlPanel(
+  getPsiElement: GetPsiValue, changePsiValue: ChangePsiValue, context: Context, controls: JPanel,
+  dungeon: Dungeon, file: String, offset: Int, tracker: ControlTracker?
+): ControlTracker? {
+  val nodeRange = findNodeEntry(dungeon.nodeMap, file, offset)
   val node = nodeRange?.key
 
   return if (node != null) {
     val newTracker = ControlTracker(
-        node = node,
-        range = nodeRange.value.range
+      node = node,
+      range = nodeRange.value.range
     )
     if (tracker != newTracker) {
       controls.removeAll()
@@ -182,7 +210,7 @@ fun updateControlPanel(getPsiElement: GetPsiValue, changePsiValue: ChangePsiValu
       fields.forEach { field ->
         val fieldComponent = updateControlList(changePsiValue, dungeon.graph.values, field)
         if (fieldComponent != null)
-        controls.add(fieldComponent)
+          controls.add(fieldComponent)
       }
       controls.revalidate()
       controls.repaint()

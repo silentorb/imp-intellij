@@ -4,6 +4,8 @@ import com.intellij.openapi.actionSystem.AnAction
 import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.actionSystem.CommonDataKeys
 import com.intellij.openapi.editor.Editor
+import silentorb.imp.campaign.pathToString
+import silentorb.imp.intellij.common.getDocumentPath
 import silentorb.imp.intellij.services.getDocumentMetadataService
 import silentorb.imp.intellij.ui.misc.findNode
 import silentorb.imp.intellij.ui.misc.getDungeonAndErrors
@@ -18,7 +20,7 @@ class PreviewNodeAction : AnAction() {
       if (response != null) {
         val (dungeon) = response
         val offset = editor.caretModel.offset
-        val node = findNode(dungeon.nodeMap, offset)
+        val node = findNode(dungeon.nodeMap, pathToString(getDocumentPath(document)), offset)
         val metadata = getDocumentMetadataService()
         val newNode = if (metadata.getPreviewNode(document) == node)
           null

@@ -6,7 +6,7 @@ import com.intellij.openapi.editor.Document
 import com.intellij.openapi.fileEditor.FileDocumentManager
 import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.psi.PsiFile
-import com.jetbrains.rd.util.firstOrNull
+import com.intellij.openapi.diagnostic.Logger
 import silentorb.imp.campaign.*
 import silentorb.imp.core.*
 import silentorb.imp.execution.Library
@@ -88,6 +88,7 @@ class ImpLanguageService {
         )
       }
     } catch (error: Error) {
+      Logger.getInstance(ImpLanguageService::class.java).error(error)
       return Response(emptyDungeon, listOf())
     }
   }

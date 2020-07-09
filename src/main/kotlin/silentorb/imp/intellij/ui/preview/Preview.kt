@@ -222,7 +222,7 @@ fun update(container: PreviewContainer, document: Document?, dungeon: Dungeon?, 
   } else if (errors.any()) {
     container.state = null
     container.display = null
-    val errorPanel = messagePanel(formatError(::englishText, errors.first()))
+    val errorPanel = messagePanel(formatErrorWithRange(::englishText, errors.first()))
     container.removeAll()
     container.add(errorPanel, BorderLayout.CENTER)
     container.revalidate()

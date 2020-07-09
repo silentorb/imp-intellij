@@ -111,33 +111,35 @@ fun changePsiValue(project: Project): (PsiElementWrapper, String) -> Unit = { el
   }
 }
 
-fun findNodeEntry(nodeMap: NodeMap, offset: Int) =
-    nodeMap.entries
-        .firstOrNull { (_, range) -> isInRange(range.range, offset) }
+typealias NodeMapEntry = Map.Entry<PathKey, FileRange>
 
-fun findNode(nodeMap: NodeMap, offset: Int): PathKey? =
-    findNodeEntry(nodeMap, offset)?.key
+fun findNodeEntry(nodeMap: NodeMap, file: String, offset: Int): NodeMapEntry? =
+  nodeMap.entries
+    .firstOrNull { (_, range) -> isInRange(range, file, offset) }
+
+fun findNode(nodeMap: NodeMap, file: String, offset: Int): PathKey? =
+  findNodeEntry(nodeMap, file, offset)?.key
 
 fun resizeListener(component: JComponent, onResize: () -> Unit) =
-    object : ComponentListener {
-      var previousWidth = component.width
-      var previousHeight = component.height
-      override fun componentResized(event: ComponentEvent?) {
-        if (component.width != previousWidth) {
-          println("Changed width $previousWidth -> ${component.width} height $previousHeight -> ${component.height}")
-          previousWidth = component.width
-          previousHeight = component.height
-          onResize()
-        }
+  object : ComponentListener {
+    var previousWidth = component.width
+    var previousHeight = component.height
+    override fun componentResized(event: ComponentEvent?) {
+      if (component.width != previousWidth) {
+        println("Changed width $previousWidth -> ${component.width} height $previousHeight -> ${component.height}")
+        previousWidth = component.width
+        previousHeight = component.height
+        onResize()
       }
-
-      override fun componentMoved(e: ComponentEvent?) {}
-      override fun componentHidden(e: ComponentEvent?) {}
-      override fun componentShown(e: ComponentEvent?) {}
     }
 
+    override fun componentMoved(e: ComponentEvent?) {}
+    override fun componentHidden(e: ComponentEvent?) {}
+    override fun componentShown(e: ComponentEvent?) {}
+  }
+
 fun getFileFromPath(path: String): VirtualFile? =
-    LocalFileSystem.getInstance().findFileByIoFile(File(path))
+  LocalFileSystem.getInstance().findFileByIoFile(File(path))
 
 fun getDocumentFromPath(path: String): Document? {
   val file = getFileFromPath(path)
@@ -148,4 +150,4 @@ fun getDocumentFromPath(path: String): Document? {
 }
 
 fun getDocumentFromPath(path: Path): Document? =
-    getDocumentFromPath(path.toString())
+  getDocumentFromPath(path.toString())

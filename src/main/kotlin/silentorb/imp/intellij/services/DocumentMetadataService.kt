@@ -26,8 +26,11 @@ class DocumentMetadataService : PersistentStateComponent<DocumentMetadata> {
     internalState = state
   }
 
+  fun getPreviewNode(filePath: String): PathKey? =
+      internalState.previewNodes[filePath]
+
   fun getPreviewNode(document: Document): PathKey? =
-      internalState.previewNodes[getDocumentFile(document)?.canonicalPath!!]
+    internalState.previewNodes[getDocumentFile(document)?.canonicalPath!!]
 
   fun setPreviewNode(project: Project, document: Document, node: PathKey?) {
     val file = getDocumentFile(document)
