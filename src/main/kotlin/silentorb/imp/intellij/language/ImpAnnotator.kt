@@ -60,7 +60,7 @@ fun annotateErrors(
 class ImpAnnotator : Annotator {
   override fun annotate(element: PsiElement, holder: AnnotationHolder) {
     val type = element.elementType
-    if (type is ImpTokenType && type.rune === Rune.identifier) {
+    if (type is ImpTokenType) {
       val document = PsiDocumentManager.getInstance(element.project).getDocument(element.containingFile)
       if (document != null) {
         val response = getDungeonAndErrors(element.project, element.containingFile)
