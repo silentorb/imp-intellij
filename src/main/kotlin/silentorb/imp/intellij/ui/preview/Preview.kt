@@ -145,7 +145,7 @@ fun updatePreview(
         Disposer.register(preview, component)
       }
     } else {
-      val typeName = dungeon.graph.typings.typeNames[type] ?: "???"
+      val typeName = dungeon.namespace.typings.typeNames[type] ?: "???"
       replacePanelContents(preview, messagePanel("No preview for type $typeName"))
     }
   }
@@ -194,7 +194,7 @@ fun updatePreview(document: Document?, dungeon: Dungeon, preview: PreviewContain
     return
 
   val output = getOutputNode(document, node, dungeon)
-  val type = dungeon.graph.returnTypes[output]
+  val type = dungeon.namespace.nodeTypes[output]
   if (type != null) {
     updatePreview(document, preview, dungeon, type, timestamp, node)
   } else {

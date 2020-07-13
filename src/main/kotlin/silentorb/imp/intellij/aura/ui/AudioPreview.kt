@@ -2,11 +2,9 @@ package silentorb.imp.intellij.aura.ui
 
 import com.intellij.openapi.Disposable
 import com.intellij.openapi.ui.SimpleToolWindowPanel
-import silentorb.imp.core.FunctionImplementationMap
-import silentorb.imp.core.Graph
+import silentorb.imp.core.Namespace
 import silentorb.imp.core.PathKey
 import silentorb.imp.intellij.services.executeGraph
-import silentorb.imp.intellij.services.initialFunctions
 import silentorb.imp.intellij.ui.preview.NewPreviewProps
 import silentorb.imp.intellij.ui.preview.PreviewDisplay
 import silentorb.imp.intellij.ui.preview.PreviewState
@@ -19,8 +17,8 @@ import java.nio.file.Path
 
 const val sampleRate = 44100
 
-fun renderImpAudio(file: Path, functions: FunctionImplementationMap, graph: Graph, node: PathKey?): Pair<ShortBuffer, Int> {
-  val value = executeGraph(file, functions, graph, node)!!
+fun renderImpAudio(file: Path, graph: Namespace, node: PathKey?): Pair<ShortBuffer, Int> {
+  val value = executeGraph(file, graph, node)!!
   val output = value as AudioOutput
   return Pair(renderAudioTo16bit(AudioConfig(sampleRate), output), output.samplers.size)
 }
@@ -32,8 +30,7 @@ class AudioPreviewPanel : SimpleToolWindowPanel(true), Disposable {
 }
 
 fun rebuildAudio(state: PreviewState, panel: AudioPreviewPanel) {
-  val functions = initialFunctions()
-  val (buffer, channels) = renderImpAudio(getDocumentPath(state.document!!), functions, state.dungeon.graph, state.node)
+  val (buffer, channels) = renderImpAudio(getDocumentPath(state.document!!), state.dungeon.namespace, state.node)
   playSound(buffer, channels, sampleRate)
 }
 

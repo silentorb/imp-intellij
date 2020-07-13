@@ -10,7 +10,6 @@ import silentorb.imp.core.getGraphOutputNode
 import silentorb.imp.execution.OutputValues
 import silentorb.imp.execution.executeStep
 import silentorb.imp.execution.executeToSingleValue
-import silentorb.imp.intellij.services.initialFunctions
 import silentorb.imp.intellij.messaging.ToggleNotifier
 import silentorb.imp.intellij.messaging.toggleTilingTopic
 import silentorb.imp.intellij.ui.misc.resizeListener

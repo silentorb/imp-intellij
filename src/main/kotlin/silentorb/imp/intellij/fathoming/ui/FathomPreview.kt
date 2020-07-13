@@ -8,7 +8,6 @@ import silentorb.imp.intellij.fathoming.actions.DisplayModeAction
 import silentorb.imp.intellij.fathoming.state.FathomPreviewState
 import silentorb.imp.intellij.fathoming.state.getDisplayMode
 import silentorb.imp.intellij.fathoming.state.getFathomPreviewStateService
-import silentorb.imp.intellij.services.initialFunctions
 import silentorb.imp.intellij.ui.misc.resizeListener
 import silentorb.imp.intellij.ui.preview.*
 import silentorb.imp.intellij.ui.texturing.newImageElement

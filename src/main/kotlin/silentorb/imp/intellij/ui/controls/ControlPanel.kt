@@ -48,7 +48,7 @@ class ControlPanel(val project: Project, contentManager: ContentManager) : JPane
               val context = if (workspaceResponse != null)
                 getModulesContext(workspaceResponse.value.modules)
               else
-                listOf(dungeon.graph)
+                listOf(dungeon.namespace)
 
               updateControlPanel(
                 getPsiElement(project, document),
@@ -112,19 +112,19 @@ fun newFieldControl(
   node: PathKey,
   type: TypeHash?
 ): ControlField? {
-  val graph = dungeon.graph
+  val graph = dungeon.namespace
   val complexTypeControl = complexTypeControls[type]
   val parameters = getParameterConnections(context, node)
 
   return if (type != null && parameters.any()) {
     val nodes = if (complexTypeControl != null) {
-      dungeon.graph.connections
+      dungeon.namespace.connections
         .filter { it.key.destination == node }
         .map { it.value }
     } else
       listOf(node)
 
-    val offsets = dungeon.graph.connections
+    val offsets = dungeon.namespace.connections
       .filter { it.key.destination == node }
       .map { it.value }
       .plus(node)
@@ -151,8 +151,8 @@ fun gatherControlFields(
   dungeon: Dungeon,
   node: PathKey
 ): List<ControlField> {
-  val graph = dungeon.graph
-  val functionType = graph.implementationTypes[node]
+  val graph = dungeon.namespace
+  val functionType = graph.nodeTypes[node]
   return if (functionType != null && !complexTypeControls.containsKey(functionType)) {
 
     val connections = getArgumentConnections(context, node)
@@ -163,7 +163,7 @@ fun gatherControlFields(
         context,
         dungeon,
         connection.value,
-        graph.implementationTypes[child] ?: graph.returnTypes[child]
+        graph.nodeTypes[child]
       )
     }
   } else {
@@ -208,7 +208,7 @@ fun updateControlPanel(
       controls.removeAll()
       val fields = gatherControlFields(getPsiElement, context, dungeon, node)
       fields.forEach { field ->
-        val fieldComponent = updateControlList(changePsiValue, dungeon.graph.values, field)
+        val fieldComponent = updateControlList(changePsiValue, dungeon.namespace.values, field)
         if (fieldComponent != null)
           controls.add(fieldComponent)
       }

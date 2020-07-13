@@ -9,8 +9,6 @@ import com.intellij.psi.PsiFile
 import com.intellij.openapi.diagnostic.Logger
 import silentorb.imp.campaign.*
 import silentorb.imp.core.*
-import silentorb.imp.execution.Library
-import silentorb.imp.execution.combineLibraries
 import silentorb.imp.execution.execute
 import silentorb.imp.intellij.ui.misc.getDocumentFromPath
 import silentorb.imp.library.standard.standardLibrary
@@ -37,18 +35,16 @@ val getCodeFromDocument: GetCode = { path ->
 class ImpLanguageService {
   val dungeonArtifacts: WeakHashMap<PsiFile, DungeonArtifact> = WeakHashMap()
   val workspaceArtifacts: WeakHashMap<Path, Response<Workspace>> = WeakHashMap()
-  val library: Library = combineLibraries(
+  val context: List<Namespace> = listOf(
       standardLibrary(),
       auraLibrary(),
       texturingLibrary(),
       fathomLibrary()
   )
-  val context: List<Namespace> = listOf(library.namespace)
-  val functions: FunctionImplementationMap = library.implementation
 
   fun getOrCreateWorkspaceArtifact(childPath: Path): Response<Workspace>? {
     val workspaceResponse = logExecutionTime("loadWorkspace") {
-      loadContainingWorkspace(getCodeFromDocument, library, childPath)
+      loadContainingWorkspace(getCodeFromDocument, context, childPath)
     }
     if (workspaceResponse != null) {
       workspaceArtifacts[workspaceResponse.value.path] = workspaceResponse
@@ -68,7 +64,7 @@ class ImpLanguageService {
         if (module != null) {
           println("Sending artifact: $filePath")
 //          println("Hashes ${existing?.response?.value?.hashCode() ?: "none"} ${module.dungeons[fileName]?.hashCode() ?: "none"}")
-          println(module.dungeons[fileName]?.graph?.values?.values?.last())
+          println(module.dungeons[fileName]?.namespace?.values?.values?.last())
           Response(
               module.dungeons.values.firstOrNull() ?: emptyDungeon,
               parsingErrors
@@ -82,7 +78,7 @@ class ImpLanguageService {
         val (dungeon, dungeonResponse) = parseToDungeon(actualFile.path, context)(document.text)
         Response(
             dungeon.copy(
-                graph = mergeNamespaces(context + dungeon.graph)
+                namespace = mergeNamespaces(context + dungeon.namespace)
             ),
             dungeonResponse
         )
@@ -122,27 +118,24 @@ fun getImpLanguageService(): ImpLanguageService =
 fun initialContext() =
     getImpLanguageService().context
 
-fun initialFunctions() =
-    getImpLanguageService().functions
-
 fun getExistingArtifact(file: PsiFile): Response<Dungeon>? =
     getImpLanguageService().dungeonArtifacts[file]?.response
 
 fun getWorkspaceArtifact(path: Path): Response<Workspace>? =
     getImpLanguageService().getOrCreateWorkspaceArtifact(path)
 
-fun executeGraph(file: Path, functions: FunctionImplementationMap, graph: Graph, node: PathKey?): Any? {
+fun executeGraph(file: Path, graph: Namespace, node: PathKey?): Any? {
   val output = node ?: getGraphOutputNode(graph)
   return if (output == null)
     null
   else {
     val workspaceResponse = getWorkspaceArtifact(file)
-    val (context, functions2) = if (workspaceResponse != null) {
-      getModulesExecutionArtifacts(functions, initialContext(), workspaceResponse.value.modules)
+    val context= if (workspaceResponse != null) {
+      getModulesExecutionArtifacts(initialContext(), workspaceResponse.value.modules)
     } else
-      Pair(listOf(graph), functions)
+      listOf(graph)
 
-    val values = execute(context, functions2, setOf(output))
+    val values = execute(context, setOf(output))
     values[output]
   }
 }

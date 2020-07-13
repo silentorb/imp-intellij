@@ -22,12 +22,10 @@ object FathomLab {
   fun main(args: Array<String>) {
     val languageService = ImpLanguageService()
     val context = languageService.context
-    val functions = languageService.functions
     val (dungeon, errors) = parseToDungeon("", context)(impCode)
     if (errors.any())
       throw Error(errors.first().message.toString())
 
-    val graph = dungeon.graph
     val dimensions = Vector2i(400, 400)
 //    val cameraState = defaultCameraState()
 //    while (true) {
