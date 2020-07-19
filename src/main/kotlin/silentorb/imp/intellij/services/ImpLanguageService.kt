@@ -36,6 +36,7 @@ class ImpLanguageService {
   val dungeonArtifacts: WeakHashMap<PsiFile, DungeonArtifact> = WeakHashMap()
   val workspaceArtifacts: WeakHashMap<Path, Response<Workspace>> = WeakHashMap()
   val context: List<Namespace> = listOf(
+      defaultImpNamespace(),
       standardLibrary(),
       auraLibrary(),
       texturingLibrary(),

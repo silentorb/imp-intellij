@@ -84,19 +84,25 @@ fun createScene(cameraState: CameraState) =
             ProjectionType.perspective,
             Vector3(-cameraState.distance, 0f, 0f)
                 .transform(Matrix.identity
+//                    .rotateZ(0f)
+//                    .rotateY(0f)
                     .rotateZ(cameraState.yaw)
                     .rotateY(cameraState.pitch)
                 ),
             Quaternion()
                 .rotateZ(cameraState.yaw)
-                .rotateY(cameraState.pitch),
+                .rotateY(cameraState.pitch)
+                .rotateX(Pi *1f)
+            ,
+//                .rotateZ(Pi + Pi * -0.5f)
+//                .rotateY(0f),
             45f
         ),
         lights = listOf(
             Light(
                 type = LightType.point,
                 color = Vector4(1f),
-                offset = Vector3(0f, 5f, -10f),
+                offset = Vector3(4f, 7f, 20f),
                 range = 20f
             )
         ),

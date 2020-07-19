@@ -28,8 +28,8 @@ fun initializeCameraUi(component: JComponent, getState: () -> CameraState?, setS
           val state = getState()
           if (state != null) {
             setState(state.copy(
-                yaw = radial(state.yaw - offsetX.toFloat() * 0.02f),
-                pitch = radial(state.pitch - offsetY.toFloat() * 0.01f)
+                yaw = radial(state.yaw + offsetX.toFloat() * 0.02f),
+                pitch = radial(state.pitch + offsetY.toFloat() * 0.01f)
             ))
           }
         }

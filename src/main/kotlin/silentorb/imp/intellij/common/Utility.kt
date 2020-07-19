@@ -1,6 +1,7 @@
 package silentorb.imp.intellij.common
 
 import com.intellij.ide.util.PropertiesComponent
+import com.intellij.openapi.diagnostic.Logger
 import com.intellij.openapi.editor.Document
 import com.intellij.openapi.fileEditor.FileDocumentManager
 import silentorb.imp.campaign.findContainingModule
@@ -10,6 +11,7 @@ import silentorb.imp.core.PathKey
 import silentorb.imp.core.getGraphOutputNode
 import silentorb.imp.execution.ExecutionUnit
 import silentorb.imp.execution.prepareExecutionUnit
+import silentorb.imp.intellij.services.ImpLanguageService
 import silentorb.imp.intellij.services.getDocumentFile
 import silentorb.imp.intellij.services.getWorkspaceArtifact
 import silentorb.imp.intellij.services.initialContext
@@ -50,6 +52,7 @@ fun getExecutionSteps(document: Document, output: PathKey, dungeon: Dungeon): Ex
     } else
       prepareExecutionUnit(listOf(dungeon.namespace), output)
   } catch (error: Error) {
+    Logger.getInstance(ImpLanguageService::class.java).error(error)
     return null
   }
 }
