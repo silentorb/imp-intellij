@@ -6,9 +6,6 @@ import com.intellij.openapi.actionSystem.ActionManager
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.ui.SimpleToolWindowPanel
 import com.intellij.util.messages.MessageBusConnection
-import silentorb.imp.core.getGraphOutputNode
-import silentorb.imp.execution.OutputValues
-import silentorb.imp.execution.executeStep
 import silentorb.imp.execution.executeToSingleValue
 import silentorb.imp.intellij.messaging.ToggleNotifier
 import silentorb.imp.intellij.messaging.toggleTilingTopic

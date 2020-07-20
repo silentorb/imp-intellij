@@ -2,20 +2,20 @@ package silentorb.imp.intellij.fathoming.ui
 
 import com.intellij.openapi.Disposable
 import com.intellij.openapi.ui.SimpleToolWindowPanel
-import silentorb.imp.execution.executeSteps
 import silentorb.imp.execution.executeToSingleValue
 import silentorb.imp.intellij.fathoming.actions.DisplayModeAction
 import silentorb.imp.intellij.fathoming.state.FathomPreviewState
 import silentorb.imp.intellij.fathoming.state.getDisplayMode
 import silentorb.imp.intellij.fathoming.state.getFathomPreviewStateService
 import silentorb.imp.intellij.ui.misc.resizeListener
-import silentorb.imp.intellij.ui.preview.*
+import silentorb.imp.intellij.ui.preview.NewPreviewProps
+import silentorb.imp.intellij.ui.preview.PreviewDisplay
+import silentorb.imp.intellij.ui.preview.PreviewState
+import silentorb.imp.intellij.ui.preview.newPreviewToolbar
 import silentorb.imp.intellij.ui.texturing.newImageElement
 import silentorb.mythic.debugging.logExecutionTime
 import silentorb.mythic.fathom.misc.*
 import silentorb.mythic.lookinglass.IndexedGeometry
-import silentorb.mythic.lookinglass.toFloatList
-import silentorb.mythic.scenery.SamplePoint
 import silentorb.mythic.scenery.Shape
 import silentorb.mythic.spatial.Vector2i
 import silentorb.mythic.spatial.Vector3

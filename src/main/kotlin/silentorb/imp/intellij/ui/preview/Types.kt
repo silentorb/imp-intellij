@@ -6,7 +6,6 @@ import com.intellij.openapi.editor.Document
 import silentorb.imp.core.Dungeon
 import silentorb.imp.core.PathKey
 import silentorb.imp.core.TypeHash
-import silentorb.imp.execution.ExecutionStep
 import silentorb.imp.execution.ExecutionUnit
 import javax.swing.JComponent
 

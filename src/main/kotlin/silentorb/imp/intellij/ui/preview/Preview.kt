@@ -76,6 +76,14 @@ class PreviewContainer(val project: Project, contentManager: ContentManager) : J
     }
   }
 
+  fun setPreviewDisplay(value: PreviewDisplay?) {
+    val oldComponent = display?.content
+    if (oldComponent is Disposable) {
+      Disposer.dispose(oldComponent)
+    }
+    display = value
+  }
+
   override fun dispose() {
   }
 }
@@ -135,11 +143,7 @@ fun updatePreview(
     if (newDisplay != null) {
       println("New preview display")
       replacePanelContents(preview, newDisplay.content)
-      val oldComponent = preview.display?.content
-      if (oldComponent is Disposable) {
-        Disposer.dispose(oldComponent)
-      }
-      preview.display = newDisplay
+      preview.setPreviewDisplay(newDisplay)
       val component = newDisplay.content
       if (component is Disposable) {
         Disposer.register(preview, component)
@@ -215,13 +219,13 @@ fun updatePreview(document: Document?, dungeon: Dungeon, preview: PreviewContain
 fun update(container: PreviewContainer, document: Document?, dungeon: Dungeon?, errors: ImpErrors, node: PathKey?) {
   if (dungeon == null) {
     container.state = null
-    container.display = null
+    container.setPreviewDisplay(null)
     container.removeAll()
     container.revalidate()
     container.repaint()
   } else if (errors.any()) {
     container.state = null
-    container.display = null
+    container.setPreviewDisplay(null)
     val errorPanel = messagePanel(formatErrorWithRange(::englishText, errors.first()))
     container.removeAll()
     container.add(errorPanel, BorderLayout.CENTER)
