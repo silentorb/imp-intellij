@@ -6,8 +6,8 @@ import com.intellij.lang.annotation.HighlightSeverity
 import com.intellij.psi.PsiDocumentManager
 import com.intellij.psi.PsiElement
 import com.intellij.psi.util.elementType
-import com.intellij.refactoring.suggested.endOffset
-import com.intellij.refactoring.suggested.startOffset
+//import com.intellij.refactoring.suggested.endOffset
+//import com.intellij.refactoring.suggested.startOffset
 import silentorb.imp.core.FileRange
 import silentorb.imp.core.ImpErrors
 import silentorb.imp.core.PathKey
@@ -27,18 +27,19 @@ fun previewSelectionAnnotations(
   holder: AnnotationHolder
 ) {
   if (node == getDocumentMetadataService().getPreviewNode(filePath)) {
-    holder.newAnnotation(HighlightSeverity.INFORMATION, "Preview")
-      .range(element)
-      .textAttributes(ImpSyntaxHighlighter.previewNode)
-      .create()
+    val annotation = holder.createInfoAnnotation(element, "Preview")
+    annotation.textAttributes = ImpSyntaxHighlighter.previewNode
+//    holder.newAnnotation(HighlightSeverity.INFORMATION, "Preview")
+//      .range(element)
+//      .textAttributes(ImpSyntaxHighlighter.previewNode)
+//      .create()
   }
 }
 
 fun rangeMatchesElement(fileRange: FileRange, element: PsiElement, filePath: String): Boolean =
-  fileRange.range.start.index == element.startOffset &&
-//      fileRange.range.end.index == element.endOffset &&
+//  fileRange.range.start.index == element.startOffset &&
+  fileRange.range.start.index == element.textOffset &&
       fileRange.file == filePath
-
 
 fun annotateErrors(
   holder: AnnotationHolder,
@@ -49,9 +50,10 @@ fun annotateErrors(
   errors.mapNotNull { error ->
     val fileRange = error.fileRange
     if (fileRange != null && rangeMatchesElement(fileRange, element, filePath)) {
-      holder.newAnnotation(HighlightSeverity.ERROR, formatErrorMessage(::englishText, error))
-        .range(element)
-        .create()
+      holder.createErrorAnnotation(element, formatErrorMessage(::englishText, error))
+//      holder.newAnnotation(HighlightSeverity.ERROR, formatErrorMessage(::englishText, error))
+//        .range(element)
+//        .create()
     } else
       null
   }

@@ -112,7 +112,12 @@ fun updatePreviewState(
 ): PreviewState {
   val output = getOutputNode(document, node, dungeon)
   val executionUnit = if (output != null && document != null) {
-    getExecutionSteps(document, output, dungeon)
+    try {
+      getExecutionSteps(document, output, dungeon)
+    }
+    catch (error: Throwable) {
+      null
+    }
   } else
     null
 

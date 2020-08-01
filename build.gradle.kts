@@ -26,7 +26,7 @@ dependencies {
 }
 
 intellij {
-    version = "2020.1"
+    version = "2019.3"
 }
 tasks {
     compileKotlin {
