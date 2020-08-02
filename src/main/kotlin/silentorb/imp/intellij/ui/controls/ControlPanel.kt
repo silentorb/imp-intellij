@@ -1,5 +1,7 @@
 package silentorb.imp.intellij.ui.controls
 
+import com.intellij.openapi.Disposable
+import com.intellij.openapi.editor.Document
 import com.intellij.openapi.fileEditor.FileDocumentManager
 import com.intellij.openapi.fileEditor.FileEditorManager
 import com.intellij.openapi.fileEditor.impl.text.TextEditorImpl
@@ -9,12 +11,10 @@ import com.intellij.psi.PsiElement
 import com.intellij.ui.content.ContentManager
 import silentorb.imp.campaign.getModulesContext
 import silentorb.imp.core.*
-import silentorb.imp.core.Range
-import silentorb.imp.core.Dungeon
 import silentorb.imp.intellij.services.getWorkspaceArtifact
+import silentorb.imp.intellij.services.initialContext
 import silentorb.imp.intellij.ui.misc.*
 import silentorb.mythic.imaging.texturing.newRgbTypeHash
-import java.awt.Dimension
 import java.nio.file.Paths
 import javax.swing.*
 
@@ -26,56 +26,67 @@ fun getCurrentEditorCaretOffset(project: Project, file: VirtualFile): Int? {
     null
 }
 
-class ControlPanel(val project: Project, contentManager: ContentManager) : JPanel() {
+class ControlPanel(val project: Project, contentManager: ContentManager) : JPanel(), Disposable {
   var tracker: ControlTracker? = null
   var lastCaretOffset: Int? = null
   var lastFile: VirtualFile? = null
-  val activeDocumentWatcher = ActiveDocumentWatcher(project) { file ->
-    if (file !== lastFile || (file != null && getCurrentEditorCaretOffset(project, file) != lastCaretOffset)) {
-      lastFile = file
-      if (file == null) {
-        clearControlList(this)
-      } else {
-        val caretOffset = getCurrentEditorCaretOffset(project, file)
-        lastCaretOffset = caretOffset
-        if (caretOffset != null) {
-          val document = FileDocumentManager.getInstance().getDocument(file)!!
-          val response = getDungeonAndErrors(project, document)
-          if (response != null) {
-            val (dungeon, errors) = response
-            if (errors.none()) {
-              val workspaceResponse = getWorkspaceArtifact(Paths.get(file.path))
-              val context = if (workspaceResponse != null)
-                getModulesContext(workspaceResponse.value.modules)
-              else
-                listOf(dungeon.namespace)
 
-              updateControlPanel(
-                getPsiElement(project, document),
-                changePsiValue(project),
-                context,
-                this,
-                dungeon,
-                file.path,
-                caretOffset,
-                tracker
-              )
-            }
-          }
+  fun refreshControls(document: Document, filePath: String, caretOffset: Int) {
+    val response = getDungeonAndErrors(project, document)
+    if (response != null) {
+      val (dungeon, errors) = response
+      if (errors.none()) {
+        val workspaceResponse = getWorkspaceArtifact(Paths.get(filePath))
+        val context = if (workspaceResponse != null)
+          initialContext() + getModulesContext(workspaceResponse.value.modules)
+        else
+          listOf(dungeon.namespace)
+
+        try {
+          updateControlPanel(
+              getPsiElement(project, document),
+              changePsiValue(project),
+              context,
+              this,
+              dungeon,
+              filePath,
+              caretOffset,
+              tracker
+          )
+        } catch (error: Throwable) {
+          // This is just for emergencies
         }
+      }
+    }
+  }
+
+  fun onTick() {
+    val file = getActiveVirtualFile(project)
+    val document = if (file != null) FileDocumentManager.getInstance().getDocument(file) else null
+    if (file == null && lastFile != null) {
+      clearControlList(this)
+    } else if (file != null && document != null && (file !== lastFile || getCurrentEditorCaretOffset(project, file) != lastCaretOffset)) {
+      lastFile = file
+      val caretOffset = getCurrentEditorCaretOffset(project, file)
+      lastCaretOffset = caretOffset
+      if (caretOffset != null) {
+        refreshControls(document, file.path, caretOffset)
       }
     }
   }
 
   init {
     layout = BoxLayout(this, BoxLayout.Y_AXIS)
-    activeDocumentWatcher.start(contentManager)
+    initializeTimer(project, contentManager, "PreviewUpdateTimer", this) { onTick() }
+  }
+
+  override fun dispose() {
   }
 }
 
 data class ControlTracker(
-  val node: PathKey,
-  val range: Range
+    val node: PathKey,
+    val range: Range
 )
 
 fun clearControlList(controls: JPanel) {
@@ -85,59 +96,63 @@ fun clearControlList(controls: JPanel) {
 }
 
 data class PsiElementWrapper(
-  var element: PsiElement
+    var element: PsiElement
 )
 
 typealias GetPsiValue = (Int) -> PsiElementWrapper?
 typealias ChangePsiValue = (PsiElementWrapper, String) -> Unit
 
 data class ControlField(
-  val name: String,
-  val nodes: List<PathKey>,
-  val psiElements: List<PsiElementWrapper>,
-  val type: TypeHash,
-  val valueRange: NumericTypeConstraint?
+    val name: String,
+    val nodes: List<PathKey>,
+    val psiElements: List<PsiElementWrapper>,
+    val type: TypeHash,
+    val valueRange: NumericTypeConstraint?
 )
 
 typealias ComplexTypeControl = (ChangePsiValue, List<PsiElementWrapper>, List<Any>) -> JComponent
 
 private val complexTypeControls: Map<TypeHash, ComplexTypeControl> = mapOf(
-  newRgbTypeHash to ::newColorPicker
+    newRgbTypeHash to ::newColorPicker
 )
 
 fun newFieldControl(
-  getPsiElement: GetPsiValue,
-  context: Context,
-  dungeon: Dungeon,
-  node: PathKey,
-  type: TypeHash?
+    getPsiElement: GetPsiValue,
+    context: Context,
+    dungeon: Dungeon,
+    node: PathKey,
+    type: TypeHash
 ): ControlField? {
   val graph = dungeon.namespace
   val complexTypeControl = complexTypeControls[type]
   val parameters = getParameterConnections(context, node)
 
-  return if (type != null && parameters.any()) {
+  return if (parameters.any()) {
     val nodes = if (complexTypeControl != null) {
-      dungeon.namespace.connections
-        .filter { it.key.destination == node }
-        .map { it.value }
+      val application = graph.connections.entries.firstOrNull { it.value == node }?.key?.destination
+      val arguments = getArgumentConnections(context, application ?: node)
+      val signature = getTypeSignature(context, type)
+      if (signature != null)
+        signature.parameters.mapNotNull { parameter ->
+          arguments.entries.firstOrNull { it.key.parameter == parameter.name }
+              ?.value
+        }
+      else
+        listOf()
     } else
       listOf(node)
 
-    val offsets = dungeon.namespace.connections
-      .filter { it.key.destination == node }
-      .map { it.value }
-      .plus(node)
-      .mapNotNull { dungeon.nodeMap[it]?.range?.start?.index }
-
-    val psiElements = offsets.map(getPsiElement).filterNotNull()
+    val psiElements = nodes.mapNotNull {
+      val offset = dungeon.nodeMap[it]?.range?.start?.index
+      if (offset != null) getPsiElement(offset) else null
+    }
     if (psiElements.any())
       ControlField(
-        name = parameters.keys.first().parameter,
-        nodes = nodes,
-        psiElements = psiElements,
-        type = type,
-        valueRange = resolveNumericTypeConstraint(type)(context)
+          name = parameters.keys.first().parameter,
+          nodes = nodes,
+          psiElements = psiElements,
+          type = type,
+          valueRange = resolveNumericTypeConstraint(type)(context)
       )
     else
       null
@@ -145,29 +160,52 @@ fun newFieldControl(
     null
 }
 
+fun getApplicationAndTarget(context: Context, namespace: Namespace, node: PathKey): Pair<PathKey?, PathKey?> {
+  return if (getArgumentConnections(context, node).size > 1)
+    node to resolveReference(context, node)
+  else {
+    val application = namespace.connections.entries.firstOrNull { it.value == node }?.key?.destination
+    application to if (application != null) resolveReference(context, application) else null
+  }
+}
+
+fun getApplicationArgument(context: Context, namespace: Namespace, node: PathKey): PathKey? =
+    if (getArgumentConnections(context, node).size > 1)
+      resolveReference(context, node)
+    else
+      node
+
 fun gatherControlFields(
-  getPsiElement: GetPsiValue,
-  context: Context,
-  dungeon: Dungeon,
-  node: PathKey
+    getPsiElement: GetPsiValue,
+    context: Context,
+    dungeon: Dungeon,
+    node: PathKey
 ): List<ControlField> {
   val graph = dungeon.namespace
-  val functionType = graph.nodeTypes[node]
-  return if (functionType != null && !complexTypeControls.containsKey(functionType)) {
-
-    val connections = getArgumentConnections(context, node)
-    connections.mapNotNull { connection ->
-      val child = connection.value
-      newFieldControl(
-        getPsiElement,
-        context,
-        dungeon,
-        connection.value,
-        graph.nodeTypes[child]
-      )
+  val (application, target) = getApplicationAndTarget(context, dungeon.namespace, node)
+  val functionType = graph.nodeTypes[target]
+  return if (functionType == null)
+    listOf()
+  else {
+    if (!complexTypeControls.containsKey(functionType)) {
+      val connections = getArgumentConnections(context, application!!)
+      connections.mapNotNull { connection ->
+        val child = getApplicationArgument(context, dungeon.namespace, connection.value)
+        val type = graph.nodeTypes[child]
+        if (type != null)
+          newFieldControl(
+              getPsiElement,
+              context,
+              dungeon,
+              child!!,
+              type
+          )
+        else
+          null
+      }
+    } else {
+      listOfNotNull(newFieldControl(getPsiElement, context, dungeon, target!!, functionType))
     }
-  } else {
-    listOfNotNull(newFieldControl(getPsiElement, context, dungeon, node, functionType))
   }
 }
 
@@ -193,16 +231,16 @@ fun updateControlList(changePsiValue: ChangePsiValue, values: Map<PathKey, Any>,
 }
 
 fun updateControlPanel(
-  getPsiElement: GetPsiValue, changePsiValue: ChangePsiValue, context: Context, controls: JPanel,
-  dungeon: Dungeon, file: String, offset: Int, tracker: ControlTracker?
+    getPsiElement: GetPsiValue, changePsiValue: ChangePsiValue, context: Context, controls: JPanel,
+    dungeon: Dungeon, file: String, offset: Int, tracker: ControlTracker?
 ): ControlTracker? {
   val nodeRange = findNodeEntry(dungeon.nodeMap, file, offset)
   val node = nodeRange?.key
 
   return if (node != null) {
     val newTracker = ControlTracker(
-      node = node,
-      range = nodeRange.value.range
+        node = node,
+        range = nodeRange.value.range
     )
     if (tracker != newTracker) {
       controls.removeAll()

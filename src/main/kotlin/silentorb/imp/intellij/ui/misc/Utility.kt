@@ -1,9 +1,12 @@
 package silentorb.imp.intellij.ui.misc
 
+import com.intellij.openapi.Disposable
 import com.intellij.openapi.command.WriteCommandAction
 import com.intellij.openapi.editor.Document
 import com.intellij.openapi.fileEditor.FileDocumentManager
+import com.intellij.openapi.project.DumbService
 import com.intellij.openapi.project.Project
+import com.intellij.openapi.util.Disposer
 import com.intellij.openapi.vfs.LocalFileSystem
 import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.psi.PsiDocumentManager
@@ -12,6 +15,8 @@ import com.intellij.psi.PsiFile
 import com.intellij.psi.PsiFileFactory
 import com.intellij.psi.impl.PsiFileFactoryImpl
 import com.intellij.psi.util.elementType
+import com.intellij.ui.content.ContentManager
+import com.intellij.util.ui.TimerUtil
 import silentorb.imp.core.*
 import silentorb.imp.intellij.language.ImpLanguage
 import silentorb.imp.intellij.misc.ImpFileType
@@ -114,32 +119,32 @@ fun changePsiValue(project: Project): (PsiElementWrapper, String) -> Unit = { el
 typealias NodeMapEntry = Map.Entry<PathKey, FileRange>
 
 fun findNodeEntry(nodeMap: NodeMap, file: String, offset: Int): NodeMapEntry? =
-  nodeMap.entries
-    .firstOrNull { (_, range) -> isInRange(range, file, offset) }
+    nodeMap.entries
+        .firstOrNull { (_, range) -> isInRange(range, file, offset) }
 
 fun findNode(nodeMap: NodeMap, file: String, offset: Int): PathKey? =
-  findNodeEntry(nodeMap, file, offset)?.key
+    findNodeEntry(nodeMap, file, offset)?.key
 
 fun resizeListener(component: JComponent, onResize: () -> Unit) =
-  object : ComponentListener {
-    var previousWidth = component.width
-    var previousHeight = component.height
-    override fun componentResized(event: ComponentEvent?) {
-      if (component.width != previousWidth) {
-        println("Changed width $previousWidth -> ${component.width} height $previousHeight -> ${component.height}")
-        previousWidth = component.width
-        previousHeight = component.height
-        onResize()
+    object : ComponentListener {
+      var previousWidth = component.width
+      var previousHeight = component.height
+      override fun componentResized(event: ComponentEvent?) {
+        if (component.width != previousWidth) {
+          println("Changed width $previousWidth -> ${component.width} height $previousHeight -> ${component.height}")
+          previousWidth = component.width
+          previousHeight = component.height
+          onResize()
+        }
       }
+
+      override fun componentMoved(e: ComponentEvent?) {}
+      override fun componentHidden(e: ComponentEvent?) {}
+      override fun componentShown(e: ComponentEvent?) {}
     }
 
-    override fun componentMoved(e: ComponentEvent?) {}
-    override fun componentHidden(e: ComponentEvent?) {}
-    override fun componentShown(e: ComponentEvent?) {}
-  }
-
 fun getFileFromPath(path: String): VirtualFile? =
-  LocalFileSystem.getInstance().findFileByIoFile(File(path))
+    LocalFileSystem.getInstance().findFileByIoFile(File(path))
 
 fun getDocumentFromPath(path: String): Document? {
   val file = getFileFromPath(path)
@@ -150,4 +155,33 @@ fun getDocumentFromPath(path: String): Document? {
 }
 
 fun getDocumentFromPath(path: Path): Document? =
-  getDocumentFromPath(path.toString())
+    getDocumentFromPath(path.toString())
+
+fun initializeTimer(
+    project: Project,
+    contentManager: ContentManager,
+    timerName: String,
+    child: Disposable,
+    onTick: () -> Unit
+) {
+  DumbService.getInstance(project).runWhenSmart {
+    Disposer.register(contentManager, child)
+
+    val timer = TimerUtil.createNamedTimer(timerName, 33) { onTick() }
+
+    Disposer.register(child, Disposable {
+      timer.stop()
+    })
+
+    timer.start()
+    Disposer.register(contentManager, child)
+  }
+}
+
+fun getActiveDocument(project: Project): Document? {
+  val file = getActiveVirtualFile(project)
+  return if (file != null)
+    FileDocumentManager.getInstance().getDocument(file)!!
+  else
+    null
+}

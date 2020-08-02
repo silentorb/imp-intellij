@@ -14,10 +14,7 @@ import silentorb.imp.core.*
 import silentorb.imp.intellij.common.getExecutionSteps
 import silentorb.imp.intellij.common.getOutputNode
 import silentorb.imp.intellij.services.*
-import silentorb.imp.intellij.ui.misc.getActiveVirtualFile
-import silentorb.imp.intellij.ui.misc.getDocumentFromPath
-import silentorb.imp.intellij.ui.misc.getDungeonWithoutErrors
-import silentorb.imp.intellij.ui.misc.replacePanelContents
+import silentorb.imp.intellij.ui.misc.*
 import silentorb.imp.parsing.general.englishText
 import silentorb.mythic.spatial.Vector2i
 import java.awt.BorderLayout
@@ -34,42 +31,25 @@ class PreviewContainer(val project: Project, contentManager: ContentManager) : J
 
   init {
     layout = BorderLayout()
-
-    DumbService.getInstance(project).runWhenSmart {
-      Disposer.register(contentManager, this)
-
-      val timer = TimerUtil.createNamedTimer("ActiveDocumentWatcher", 33) { onTick() }
-
-      Disposer.register(this, Disposable {
-        timer.stop()
-      })
-
-      timer.start()
-      Disposer.register(contentManager, this)
-    }
+    initializeTimer(project, contentManager,"PreviewUpdateTimer", this) { onTick() }
   }
 
   fun onTick() {
-    val file = getActiveVirtualFile(project)
-    val nextDocument = if (file != null)
-      FileDocumentManager.getInstance().getDocument(file)!!
-    else
-      null
-
-    val node = if (nextDocument != null) getDocumentMetadataService().getPreviewNode(nextDocument) else null
     val localPreviewLockFile = getPreviewFileLock()
     previewLockFile = localPreviewLockFile
-    val dungeonDocument = if (localPreviewLockFile != null)
+    val nextDocument = if (localPreviewLockFile != null)
       getDocumentFromPath(localPreviewLockFile)!!
     else
-      nextDocument ?: document
+      getActiveDocument(project) ?: document
 
-    val newDungeon = if (dungeonDocument != null)
-      getDungeonWithoutErrors(project, dungeonDocument)
+    val newDungeon = if (nextDocument != null)
+      getDungeonWithoutErrors(project, nextDocument)
     else
       null
 
-    if (newDungeon != state?.dungeon || node != state?.node || nextDocument != document) {
+    val localState = state
+    val node = if (nextDocument != null) getDocumentMetadataService().getPreviewNode(nextDocument) else null
+    if ((localState != null && (newDungeon != localState.dungeon || node != localState.node)) || nextDocument != document) {
       println("Active document contents changed")
       update(this, nextDocument, newDungeon, listOf(), node)
       document = nextDocument

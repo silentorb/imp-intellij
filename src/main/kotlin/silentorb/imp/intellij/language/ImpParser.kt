@@ -13,6 +13,15 @@ import java.nio.file.Paths
 
 class ImpParser : PsiParser, LightPsiParser {
   override fun parse(root: IElementType, builder: PsiBuilder): ASTNode {
+    if (root is ImpTokenType) {
+      val marker = builder.mark()
+      while (!builder.eof()) {
+        builder.advanceLexer()
+      }
+      marker.done(root)
+      return builder.treeBuilt
+    }
+
     val filePath = Paths.get("")
     val (tokens, lexingErrors) = tokenizeAndSanitize(filePath.toString(), builder.originalText)
     val (realm, syntaxErrors) = parseSyntax("", tokens)

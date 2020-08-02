@@ -16,19 +16,19 @@ fun getActiveVirtualFile(project: Project): VirtualFile? {
 
   val owner = KeyboardFocusManager.getCurrentKeyboardFocusManager().focusOwner
   val dataContext = DataManager.getInstance().getDataContext(owner)
-  val files = CommonDataKeys.VIRTUAL_FILE_ARRAY.getData(dataContext)
+  val editorManager = FileEditorManager.getInstance(project) as FileEditorManagerImpl
+  val files = CommonDataKeys.VIRTUAL_FILE_ARRAY.getData(dataContext) ?: editorManager.selectedFiles
 
-  val newValue = if (files != null && files.size == 1) {
+  val newValue = if (files.size == 1) {
     files.first()
-  } else if (files != null && files.size > 1) {
+  } else if (files.size > 1) {
     null
-  } else if (firstRun) {
-    val editorManager = FileEditorManager.getInstance(project) as FileEditorManagerImpl
-    val history = editorManager.selectionHistory
-    if (history.any()) {
-      history.first().getFirst()
-    } else
-      null
+//  } else if (firstRun) {
+//    val history = editorManager.selectionHistory
+//    if (history.any()) {
+//      history.first().getFirst()
+//    } else
+//      null
   } else
     null
 
