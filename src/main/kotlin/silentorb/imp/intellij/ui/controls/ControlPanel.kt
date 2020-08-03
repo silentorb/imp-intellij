@@ -10,8 +10,10 @@ import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.psi.PsiElement
 import com.intellij.ui.content.ContentManager
 import silentorb.imp.campaign.getModulesContext
+import silentorb.imp.campaign.loadModules
 import silentorb.imp.core.*
 import silentorb.imp.intellij.services.getWorkspaceArtifact
+import silentorb.imp.intellij.services.getWorkspaceModules
 import silentorb.imp.intellij.services.initialContext
 import silentorb.imp.intellij.ui.misc.*
 import silentorb.mythic.imaging.texturing.newRgbTypeHash
@@ -37,9 +39,10 @@ class ControlPanel(val project: Project, contentManager: ContentManager) : JPane
       val (dungeon, errors) = response
       if (errors.none()) {
         val workspaceResponse = getWorkspaceArtifact(Paths.get(filePath))
-        val context = if (workspaceResponse != null)
-          initialContext() + getModulesContext(workspaceResponse.value.modules)
-        else
+        val context = if (workspaceResponse != null) {
+          val modules = getWorkspaceModules(workspaceResponse.value)
+          initialContext() + getModulesContext(modules)
+        } else
           listOf(dungeon.namespace)
 
         try {
@@ -169,7 +172,7 @@ fun getApplicationAndTarget(context: Context, namespace: Namespace, node: PathKe
   }
 }
 
-fun getApplicationArgument(context: Context, namespace: Namespace, node: PathKey): PathKey? =
+fun getApplicationArgument(context: Context, node: PathKey): PathKey? =
     if (getArgumentConnections(context, node).size > 1)
       resolveReference(context, node)
     else
@@ -190,7 +193,7 @@ fun gatherControlFields(
     if (!complexTypeControls.containsKey(functionType)) {
       val connections = getArgumentConnections(context, application!!)
       connections.mapNotNull { connection ->
-        val child = getApplicationArgument(context, dungeon.namespace, connection.value)
+        val child = getApplicationArgument(context, connection.value)
         val type = graph.nodeTypes[child]
         if (type != null)
           newFieldControl(

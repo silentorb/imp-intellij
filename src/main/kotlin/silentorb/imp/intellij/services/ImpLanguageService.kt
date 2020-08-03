@@ -5,7 +5,6 @@ import com.intellij.openapi.components.ServiceManager
 import com.intellij.openapi.editor.Document
 import com.intellij.openapi.fileEditor.FileDocumentManager
 import com.intellij.openapi.vfs.VirtualFile
-import com.intellij.psi.PsiFile
 import com.intellij.openapi.diagnostic.Logger
 import silentorb.imp.campaign.*
 import silentorb.imp.core.*
@@ -22,10 +21,7 @@ import java.nio.file.Path
 import java.nio.file.Paths
 import java.util.*
 
-data class DungeonArtifact(
-    val response: Response<Dungeon>,
-    val timestamp: Long
-)
+typealias DungeonArtifact = ArtifactEntry<Response<Dungeon>>
 
 val getCodeFromDocument: GetCode = { path ->
   getDocumentFromPath(path)?.text
@@ -33,8 +29,9 @@ val getCodeFromDocument: GetCode = { path ->
 
 @Service
 class ImpLanguageService {
-  val dungeonArtifacts: WeakHashMap<PsiFile, DungeonArtifact> = WeakHashMap()
-  val workspaceArtifacts: WeakHashMap<Path, Response<Workspace>> = WeakHashMap()
+  val dungeonArtifacts: TimedArtifactCache<Path, Response<Dungeon>> = ArtifactCache()
+  val workspaceArtifacts: ArtifactCache<Path, Response<Workspace>> = ArtifactCache()
+
   val context: List<Namespace> = listOf(
       defaultImpNamespace(),
       standardLibrary(),
@@ -44,83 +41,75 @@ class ImpLanguageService {
   )
 
   fun getOrCreateWorkspaceArtifact(childPath: Path): Response<Workspace>? {
-    val workspaceResponse = logExecutionTime("loadWorkspace") {
-      loadContainingWorkspace(getCodeFromDocument, context, childPath)
-    }
-    if (workspaceResponse != null) {
-      workspaceArtifacts[workspaceResponse.value.path] = workspaceResponse
-    }
-    return workspaceResponse
-  }
-
-  fun processWorkspaceOrModule(filePath: Path, actualFile: VirtualFile, document: Document): Response<Dungeon> {
-    try {
-      val workspaceResponse = getOrCreateWorkspaceArtifact(filePath)
-      val moduleDirectory = findContainingModule(filePath)
-      return if (workspaceResponse != null && moduleDirectory != null) {
-        val (workspace, parsingErrors) = workspaceResponse
-        val moduleName = moduleDirectory.fileName.toString()
-        val fileName = filePath.fileName.toString().split(".").first()
-        val module = workspace.modules[moduleName]
-        if (module != null) {
-          println("Sending artifact: $filePath")
-//          println("Hashes ${existing?.response?.value?.hashCode() ?: "none"} ${module.dungeons[fileName]?.hashCode() ?: "none"}")
-          println(module.dungeons[fileName]?.namespace?.values?.values?.last())
-          Response(
-              module.dungeons.values.firstOrNull() ?: emptyDungeon,
-              parsingErrors
-          )
-        } else
-          Response(
-              emptyDungeon,
-              parsingErrors
-          )
-      } else {
-        val (dungeon, dungeonResponse) = parseToDungeon(actualFile.path, context)(document.text)
-        Response(
-            dungeon.copy(
-                namespace = mergeNamespaces(context + dungeon.namespace)
-            ),
-            dungeonResponse
-        )
+    val workspaceDirectory = getContainingWorkspaceDirectory(childPath)
+    return if (workspaceDirectory == null)
+      null
+    else
+      getArtifact(workspaceArtifacts, workspaceDirectory) { key ->
+        logExecutionTime("loadWorkspace") {
+          loadWorkspace(key)
+        }
       }
-    } catch (error: Error) {
-      Logger.getInstance(ImpLanguageService::class.java).error(error)
-      return Response(emptyDungeon, listOf())
-    }
   }
 
-  fun getArtifact(document: Document, file: PsiFile): Response<Dungeon> {
-    val existing = dungeonArtifacts[file]
-    if (existing != null && existing.timestamp == document.modificationStamp)
-      return existing.response
-
-    // Lock down the timestamp in case it changes while parsing.
-    val timestamp = document.modificationStamp
+  fun getArtifact(document: Document): Response<Dungeon> {
     val actualFile = FileDocumentManager.getInstance().getFile(document)!!
     val filePath = Paths.get(actualFile.path)
-
-    println("New artifact: $filePath")
-
-    val response = processWorkspaceOrModule(filePath, actualFile, document)
-    val artifact = DungeonArtifact(
-        response = response,
-        timestamp = timestamp
-    )
-    println("Caching artifact: $filePath")
-    dungeonArtifacts[file] = artifact
-    return response
+    return getArtifact(dungeonArtifacts, filePath, document.modificationStamp) { key ->
+      val response = processWorkspaceOrModule(context, key, actualFile, document)
+      println("Caching artifact: $filePath ${response.value.namespace.hashCode()}")
+      response
+    }
   }
 }
 
 fun getImpLanguageService(): ImpLanguageService =
     ServiceManager.getService(ImpLanguageService::class.java)
 
+fun processWorkspaceOrModule(context: Context, filePath: Path, actualFile: VirtualFile, document: Document): Response<Dungeon> {
+  try {
+    val workspaceResponse = getImpLanguageService().getOrCreateWorkspaceArtifact(filePath)
+    val moduleDirectory = getContainingModule(filePath)
+    return if (workspaceResponse != null && moduleDirectory != null) {
+      val (workspace, parsingErrors) = workspaceResponse
+      val moduleName = moduleDirectory.fileName.toString()
+      val fileName = filePath.fileName.toString().split(".").first()
+      val modules = getWorkspaceModules(workspace)
+      val module = modules[moduleName]
+      if (module != null) {
+        println("Returning artifact: $filePath")
+//          println("Hashes ${existing?.response?.value?.hashCode() ?: "none"} ${module.dungeons[fileName]?.hashCode() ?: "none"}")
+        println(module.dungeons[fileName]?.namespace?.values?.values?.last())
+        Response(
+            module.dungeons.values.firstOrNull() ?: emptyDungeon,
+            parsingErrors
+        )
+      } else
+        Response(
+            emptyDungeon,
+            parsingErrors
+        )
+    } else {
+      val (dungeon, dungeonResponse) = parseToDungeon(actualFile.path, context)(document.text)
+      Response(
+          dungeon.copy(
+              namespace = mergeNamespaces(context + dungeon.namespace)
+          ),
+          dungeonResponse
+      )
+    }
+  } catch (error: Error) {
+    Logger.getInstance(ImpLanguageService::class.java).error(error)
+    return Response(emptyDungeon, listOf())
+  }
+}
+
 fun initialContext() =
     getImpLanguageService().context
 
-fun getExistingArtifact(file: PsiFile): Response<Dungeon>? =
-    getImpLanguageService().dungeonArtifacts[file]?.response
+fun getWorkspaceModules(workspace: Workspace): ModuleMap {
+  return loadModules(workspace, initialContext(), getCodeFromDocument).value
+}
 
 fun getWorkspaceArtifact(path: Path): Response<Workspace>? =
     getImpLanguageService().getOrCreateWorkspaceArtifact(path)
@@ -131,12 +120,44 @@ fun executeGraph(file: Path, graph: Namespace, node: PathKey?): Any? {
     null
   else {
     val workspaceResponse = getWorkspaceArtifact(file)
-    val context= if (workspaceResponse != null) {
-      getModulesExecutionArtifacts(initialContext(), workspaceResponse.value.modules)
+    val context = if (workspaceResponse != null) {
+      val modules = getWorkspaceModules(workspaceResponse.value)
+      getModulesExecutionArtifacts(initialContext(), modules)
     } else
       listOf(graph)
 
     val values = execute(context, setOf(output))
     values[output]
+  }
+}
+
+typealias DependencyState = Map<String, Int>
+
+fun getDependencyState(document: Document?): DependencyState {
+  if (document == null)
+    return mapOf()
+
+  val file = FileDocumentManager.getInstance().getFile(document)!!
+  val filePath = Paths.get(file.path)
+
+  val workspaceResponse = getWorkspaceArtifact(filePath)
+  return if (workspaceResponse == null) {
+    val dungeonResponse = getImpLanguageService().getArtifact(document)
+    mapOf(file.path to dungeonResponse.value.namespace.hashCode())
+  } else if (workspaceResponse.errors.any()) {
+    mapOf()
+  } else {
+    val module = getContainingModule(filePath)
+    if (module == null)
+      mapOf()
+    else {
+      val workspace = workspaceResponse.value
+      val moduleName = module.fileName.toString()
+      val dependencies = getCascadingDependencies(workspace.dependencies, setOf(moduleName))
+          .plus(moduleName)
+
+      val modules = getWorkspaceModules(workspace)
+      dependencies.associateWith { modules[it]!!.dungeons.values.first().namespace.hashCode() }
+    }
   }
 }

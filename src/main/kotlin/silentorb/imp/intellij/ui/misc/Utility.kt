@@ -40,7 +40,7 @@ fun replacePanelContents(panel: JPanel, child: JComponent) {
 fun getDungeonAndErrors(project: Project, document: Document): Response<Dungeon>? {
   val psiFile = PsiDocumentManager.getInstance(project).getPsiFile(document)
   return if (psiFile != null)
-    getImpLanguageService().getArtifact(document, psiFile)
+    getImpLanguageService().getArtifact(document)
   else
     null
 }
@@ -48,7 +48,7 @@ fun getDungeonAndErrors(project: Project, document: Document): Response<Dungeon>
 fun getDungeonWithoutErrors(project: Project, document: Document): Dungeon? {
   val psiFile = PsiDocumentManager.getInstance(project).getPsiFile(document)
   return if (psiFile != null) {
-    val (dungeon, errors) = getImpLanguageService().getArtifact(document, psiFile)
+    val (dungeon, errors) = getImpLanguageService().getArtifact(document)
     if (errors.any())
       null
     else
@@ -60,7 +60,7 @@ fun getDungeonWithoutErrors(project: Project, document: Document): Dungeon? {
 fun getDungeonAndErrors(project: Project, file: PsiFile): Response<Dungeon>? {
   val document = PsiDocumentManager.getInstance(project).getDocument(file)
   return if (document != null)
-    getImpLanguageService().getArtifact(document, file)
+    getImpLanguageService().getArtifact(document)
   else
     null
 }

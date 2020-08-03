@@ -2,14 +2,11 @@ package silentorb.imp.intellij.ui.preview
 
 import com.intellij.openapi.Disposable
 import com.intellij.openapi.editor.Document
-import com.intellij.openapi.fileEditor.FileDocumentManager
-import com.intellij.openapi.project.DumbService
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.Disposer
 import com.intellij.ui.components.JBLabel
 import com.intellij.ui.components.JBScrollPane
 import com.intellij.ui.content.ContentManager
-import com.intellij.util.ui.TimerUtil
 import silentorb.imp.core.*
 import silentorb.imp.intellij.common.getExecutionSteps
 import silentorb.imp.intellij.common.getOutputNode
@@ -31,7 +28,7 @@ class PreviewContainer(val project: Project, contentManager: ContentManager) : J
 
   init {
     layout = BorderLayout()
-    initializeTimer(project, contentManager,"PreviewUpdateTimer", this) { onTick() }
+    initializeTimer(project, contentManager, "PreviewUpdateTimer", this) { onTick() }
   }
 
   fun onTick() {
@@ -42,18 +39,26 @@ class PreviewContainer(val project: Project, contentManager: ContentManager) : J
     else
       getActiveDocument(project) ?: document
 
-    val newDungeon = if (nextDocument != null)
-      getDungeonWithoutErrors(project, nextDocument)
+    val dependencyState = if (nextDocument != null)
+      getDependencyState(nextDocument)
     else
       null
 
     val localState = state
     val node = if (nextDocument != null) getDocumentMetadataService().getPreviewNode(nextDocument) else null
-    if ((localState != null && (newDungeon != localState.dungeon || node != localState.node)) || nextDocument != document) {
+
+    if ((localState != null && (dependencyState != localState.dependencies || node != localState.node)) || nextDocument != document) {
+      val nextDungeon = if (nextDocument != null)
+        getDungeonWithoutErrors(project, nextDocument)
+      else
+        null
       println("Active document contents changed")
-      update(this, nextDocument, newDungeon, listOf(), node)
+      update(this, nextDocument, nextDungeon, listOf(), node)
       document = nextDocument
     }
+//    else {
+//      println("${dependencyState} ${localState?.dependencies}")
+//    }
   }
 
   fun setPreviewDisplay(value: PreviewDisplay?) {
@@ -94,8 +99,7 @@ fun updatePreviewState(
   val executionUnit = if (output != null && document != null) {
     try {
       getExecutionSteps(document, output, dungeon)
-    }
-    catch (error: Throwable) {
+    } catch (error: Throwable) {
       null
     }
   } else
@@ -106,6 +110,7 @@ fun updatePreviewState(
       document = document,
       type = type,
       dungeon = dungeon,
+      dependencies = getDependencyState(document),
       node = node,
       executionUnit = executionUnit,
       timestamp = timestamp
@@ -192,6 +197,7 @@ fun updatePreview(document: Document?, dungeon: Dungeon, preview: PreviewContain
         document = document,
         type = unknownType.hash,
         dungeon = dungeon,
+        dependencies = getDependencyState(document),
         node = node,
         executionUnit = null,
         timestamp = timestamp

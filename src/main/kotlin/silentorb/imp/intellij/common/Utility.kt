@@ -4,17 +4,14 @@ import com.intellij.ide.util.PropertiesComponent
 import com.intellij.openapi.diagnostic.Logger
 import com.intellij.openapi.editor.Document
 import com.intellij.openapi.fileEditor.FileDocumentManager
-import silentorb.imp.campaign.findContainingModule
+import silentorb.imp.campaign.getContainingModule
 import silentorb.imp.campaign.getModulesExecutionArtifacts
 import silentorb.imp.core.Dungeon
 import silentorb.imp.core.PathKey
 import silentorb.imp.core.getGraphOutputNode
 import silentorb.imp.execution.ExecutionUnit
 import silentorb.imp.execution.prepareExecutionUnit
-import silentorb.imp.intellij.services.ImpLanguageService
-import silentorb.imp.intellij.services.getDocumentFile
-import silentorb.imp.intellij.services.getWorkspaceArtifact
-import silentorb.imp.intellij.services.initialContext
+import silentorb.imp.intellij.services.*
 import java.nio.file.Path
 import java.nio.file.Paths
 
@@ -40,13 +37,13 @@ fun getOutputNode(document: Document?, node: PathKey?, dungeon: Dungeon): PathKe
 fun getExecutionSteps(document: Document, output: PathKey, dungeon: Dungeon): ExecutionUnit? {
   val filePath = getDocumentPath(document)
   val workspaceResponse = getWorkspaceArtifact(filePath)
-  val moduleDirectory = findContainingModule(filePath)
+  val moduleDirectory = getContainingModule(filePath)
   try {
     return if (workspaceResponse != null && moduleDirectory != null &&
         workspaceResponse.value.modules.containsKey(moduleDirectory.fileName.toString())) {
       val context = getModulesExecutionArtifacts(
           initialContext(),
-          workspaceResponse.value.modules
+          getWorkspaceModules(workspaceResponse.value)
       )
       prepareExecutionUnit(context, output)
     } else
