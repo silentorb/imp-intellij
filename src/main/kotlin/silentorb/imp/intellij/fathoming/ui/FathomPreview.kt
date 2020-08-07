@@ -153,7 +153,7 @@ fun rebuildPreviewSource(state: PreviewState, panel: SubstancePreviewPanel) {
         val model = value as ModelFunction
         sampleMesh(executionUnit.hashCode(), panel, model.form, model.collision, model.shading)
       }
-      else -> throw Error("Unsupported fathom preview type: ${state.type}")
+//      else -> throw Error("Unsupported fathom preview type: ${state.type}")
     }
   }
 }
