@@ -19,6 +19,7 @@ import silentorb.mythic.fathom.fathomLibrary
 import silentorb.mythic.imaging.texturing.texturingLibrary
 import java.nio.file.Path
 import java.nio.file.Paths
+import java.util.concurrent.locks.ReentrantLock
 
 val getCodeFromDocument: GetCode = { path ->
   getDocumentFromPath(path)?.text
@@ -26,7 +27,8 @@ val getCodeFromDocument: GetCode = { path ->
 
 @Service
 class ImpLanguageService {
-  val dungeonArtifacts: TimedArtifactCache<Path, Response<Dungeon>> = mutableMapOf()
+  val moduleArtifacts: TimedArtifactCache<ModuleId, Response<Module>> = mutableMapOf()
+  val fileArtifacts: TimedArtifactCache<Path, Response<Dungeon>> = mutableMapOf()
   val workspaceArtifacts: ArtifactCache<Path, Response<Workspace>> = mutableMapOf()
 
   val context: List<Namespace> = listOf(
@@ -52,31 +54,45 @@ class ImpLanguageService {
   fun getArtifact(document: Document): Response<Dungeon> {
     val actualFile = FileDocumentManager.getInstance().getFile(document)!!
     val filePath = Paths.get(actualFile.path)
-    return getArtifact(dungeonArtifacts, filePath, document.modificationStamp) { key ->
-      val response = processWorkspaceOrModule(context, key, actualFile, document)
-      println("Caching artifact: $filePath ${response.value.namespace.hashCode()}")
-      response
-    }
+    return processWorkspaceOrFile(context, filePath, actualFile, document)
+//    return getArtifact(moduleArtifacts, filePath, document.modificationStamp) { key ->
+//      val response =
+//      println("Caching artifact: $filePath ${response.value.namespace.hashCode()}")
+//      response
+//    }
   }
 }
 
 fun getImpLanguageService(): ImpLanguageService =
     ServiceManager.getService(ImpLanguageService::class.java)
 
-fun processWorkspaceOrModule(context: Context, filePath: Path, actualFile: VirtualFile, document: Document): Response<Dungeon> {
-  try {
+private val loadingLock = ReentrantLock()
+
+fun processWorkspaceOrFile(context: Context, filePath: Path, actualFile: VirtualFile, document: Document): Response<Dungeon> {
+  loadingLock.lock()
+  return try {
     val workspaceResponse = getImpLanguageService().getOrCreateWorkspaceArtifact(filePath)
     val moduleDirectory = getContainingModule(filePath)
-    return if (workspaceResponse != null && moduleDirectory != null) {
+    if (workspaceResponse != null && moduleDirectory != null) {
       val (workspace, parsingErrors) = workspaceResponse
       val moduleName = moduleDirectory.fileName.toString()
       val fileName = filePath.fileName.toString().split(".").first()
-      val modules = getWorkspaceModules(workspace)
+      val moduleArtifacts = getImpLanguageService().moduleArtifacts
+      val neededModules = getCascadingDependencies(workspace.dependencies, setOf(moduleName))
+          .plus(moduleName)
+          .map { it to workspace.modules[it]!! }
+      val timestamp = document.modificationStamp
+      val getModule: GetModule = { localContext, name, info ->
+        getArtifact(moduleArtifacts, name, timestamp) { key ->
+          println("Loading module artifact: $name")
+          loadModule(getCodeFromDocument)(localContext, name, info)
+        }
+      }
+      val (modules, errors) = loadModules(getModule, workspace.path.toUri(), neededModules, initialContext())
       val module = modules[moduleName]
       if (module != null) {
-        println("Returning artifact: $filePath")
 //          println("Hashes ${existing?.response?.value?.hashCode() ?: "none"} ${module.dungeons[fileName]?.hashCode() ?: "none"}")
-        println(module.dungeons[fileName]?.namespace?.values?.values?.last())
+//        println(module.dungeons[fileName]?.namespace?.values?.values?.last())
         Response(
             module.dungeons.values.firstOrNull() ?: emptyDungeon,
             parsingErrors
@@ -84,20 +100,25 @@ fun processWorkspaceOrModule(context: Context, filePath: Path, actualFile: Virtu
       } else
         Response(
             emptyDungeon,
-            parsingErrors
+            parsingErrors + errors
         )
     } else {
-      val (dungeon, dungeonResponse) = parseToDungeon(actualFile.path, context)(document.text)
-      Response(
-          dungeon.copy(
-              namespace = mergeNamespaces(context + dungeon.namespace)
-          ),
-          dungeonResponse
-      )
+      val fileArtifacts = getImpLanguageService().fileArtifacts
+      getArtifact(fileArtifacts, filePath, document.modificationStamp) { key ->
+        val (dungeon, dungeonResponse) = parseToDungeon(actualFile.path, context)(document.text)
+        Response(
+            dungeon.copy(
+                namespace = mergeNamespaces(context + dungeon.namespace)
+            ),
+            dungeonResponse
+        )
+      }
     }
   } catch (error: Error) {
     Logger.getInstance(ImpLanguageService::class.java).error(error)
-    return Response(emptyDungeon, listOf())
+    Response(emptyDungeon, listOf())
+  } finally {
+    loadingLock.unlock()
   }
 }
 
@@ -128,33 +149,33 @@ fun executeGraph(file: Path, graph: Namespace, node: PathKey?): Any? {
   }
 }
 
-typealias DependencyState = Map<String, Int>
-
-fun getDependencyState(document: Document?): DependencyState {
-  if (document == null)
-    return mapOf()
-
-  val file = FileDocumentManager.getInstance().getFile(document)!!
-  val filePath = Paths.get(file.path)
-
-  val workspaceResponse = getWorkspaceArtifact(filePath)
-  return if (workspaceResponse == null) {
-    val dungeonResponse = getImpLanguageService().getArtifact(document)
-    mapOf(file.path to dungeonResponse.value.namespace.hashCode())
-  } else if (workspaceResponse.errors.any()) {
-    mapOf()
-  } else {
-    val module = getContainingModule(filePath)
-    if (module == null)
-      mapOf()
-    else {
-      val workspace = workspaceResponse.value
-      val moduleName = module.fileName.toString()
-      val dependencies = getCascadingDependencies(workspace.dependencies, setOf(moduleName))
-          .plus(moduleName)
-
-      val modules = getWorkspaceModules(workspace)
-      dependencies.associateWith { modules[it]!!.dungeons.values.first().namespace.hashCode() }
-    }
-  }
-}
+//typealias DependencyState = Map<String, Int>
+//
+//fun getDependencyState(document: Document?): DependencyState {
+//  if (document == null)
+//    return mapOf()
+//
+//  val file = FileDocumentManager.getInstance().getFile(document)!!
+//  val filePath = Paths.get(file.path)
+//
+//  val workspaceResponse = getWorkspaceArtifact(filePath)
+//  return if (workspaceResponse == null) {
+//    val dungeonResponse = getImpLanguageService().getArtifact(document)
+//    mapOf(file.path to dungeonResponse.value.namespace.hashCode())
+//  } else if (workspaceResponse.errors.any()) {
+//    mapOf()
+//  } else {
+//    val module = getContainingModule(filePath)
+//    if (module == null)
+//      mapOf()
+//    else {
+//      val workspace = workspaceResponse.value
+//      val moduleName = module.fileName.toString()
+//      val dependencies = getCascadingDependencies(workspace.dependencies, setOf(moduleName))
+//          .plus(moduleName)
+//
+//      val modules = getWorkspaceModules(workspace)
+//      dependencies.associateWith { modules[it]!!.dungeons.values.first().namespace.hashCode() }
+//    }
+//  }
+//}

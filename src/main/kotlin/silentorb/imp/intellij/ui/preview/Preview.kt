@@ -42,19 +42,19 @@ class PreviewContainer(val project: Project, contentManager: ContentManager) : J
     else
       getActiveDocument(project) ?: document
 
-    val dependencyState = if (nextDocument != null)
-      getDependencyState(nextDocument)
-    else
-      null
+//    val dependencyState = if (nextDocument != null)
+//      getDependencyState(nextDocument)
+//    else
+//      null
 
     val localState = state
     val node = if (nextDocument != null) getDocumentMetadataService().getPreviewNode(nextDocument) else null
+    val nextDungeon = if (nextDocument != null)
+      getDungeonWithoutErrors(project, nextDocument)
+    else
+      null
 
-    if ((localState != null && (dependencyState != localState.dependencies || node != localState.node)) || nextDocument != document) {
-      val nextDungeon = if (nextDocument != null)
-        getDungeonWithoutErrors(project, nextDocument)
-      else
-        null
+    if ((localState != null && (node != localState.node || nextDungeon != localState.dungeon)) || nextDocument != document) {
       println("Active document contents changed")
       update(this, nextDocument, nextDungeon, listOf(), node)
       document = nextDocument
@@ -113,7 +113,7 @@ fun updatePreviewState(
       document = document,
       type = type,
       dungeon = dungeon,
-      dependencies = getDependencyState(document),
+//      dependencies = getDependencyState(document),
       node = node,
       executionUnit = executionUnit,
       timestamp = timestamp
@@ -200,7 +200,7 @@ fun updatePreview(document: Document?, dungeon: Dungeon, preview: PreviewContain
         document = document,
         type = unknownType.hash,
         dungeon = dungeon,
-        dependencies = getDependencyState(document),
+//        dependencies = getDependencyState(document),
         node = node,
         executionUnit = null,
         timestamp = timestamp

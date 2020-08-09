@@ -7,8 +7,6 @@ import silentorb.imp.core.Dungeon
 import silentorb.imp.core.PathKey
 import silentorb.imp.core.TypeHash
 import silentorb.imp.execution.ExecutionUnit
-import silentorb.imp.intellij.services.DependencyState
-import java.nio.file.Path
 import javax.swing.JComponent
 
 data class NewPreviewProps(
@@ -27,7 +25,7 @@ data class PreviewDisplay(
 data class PreviewState(
     val document: Document?,
     val dungeon: Dungeon,
-    val dependencies: DependencyState,
+//    val dependencies: DependencyState,
     val node: PathKey?,
     val executionUnit: ExecutionUnit?,
     val type: TypeHash,
