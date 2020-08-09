@@ -1,14 +1,12 @@
 package silentorb.imp.intellij.services
 
-import java.util.*
-
 data class ArtifactEntry<Value>(
     val value: Value,
     val timestamp: Long
 )
 
-typealias ArtifactCache<Key, Value> = WeakHashMap<Key, Value>
-typealias TimedArtifactCache<Key, Value> = WeakHashMap<Key, ArtifactEntry<Value>>
+typealias ArtifactCache<Key, Value> = MutableMap<Key, Value>
+typealias TimedArtifactCache<Key, Value> = MutableMap<Key, ArtifactEntry<Value>>
 
 fun <Key, Value> getArtifact(cache: TimedArtifactCache<Key, Value>, key: Key, timestamp: Long, get: (Key) -> Value): Value {
   val existing = cache[key]

@@ -10,7 +10,6 @@ import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.psi.PsiElement
 import com.intellij.ui.content.ContentManager
 import silentorb.imp.campaign.getModulesContext
-import silentorb.imp.campaign.loadModules
 import silentorb.imp.core.*
 import silentorb.imp.intellij.services.getWorkspaceArtifact
 import silentorb.imp.intellij.services.getWorkspaceModules
@@ -64,6 +63,9 @@ class ControlPanel(val project: Project, contentManager: ContentManager) : JPane
   }
 
   fun onTick() {
+    if (this.graphicsConfiguration == null)
+      return
+
     val file = getActiveVirtualFile(project)
     val document = if (file != null) FileDocumentManager.getInstance().getDocument(file) else null
     if (file == null && lastFile != null) {

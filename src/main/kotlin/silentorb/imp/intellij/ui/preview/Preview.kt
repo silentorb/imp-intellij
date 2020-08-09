@@ -32,6 +32,9 @@ class PreviewContainer(val project: Project, contentManager: ContentManager) : J
   }
 
   fun onTick() {
+    if (this.graphicsConfiguration == null)
+      return
+
     val localPreviewLockFile = getPreviewFileLock()
     previewLockFile = localPreviewLockFile
     val nextDocument = if (localPreviewLockFile != null)

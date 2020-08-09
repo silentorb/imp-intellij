@@ -19,9 +19,6 @@ import silentorb.mythic.fathom.fathomLibrary
 import silentorb.mythic.imaging.texturing.texturingLibrary
 import java.nio.file.Path
 import java.nio.file.Paths
-import java.util.*
-
-typealias DungeonArtifact = ArtifactEntry<Response<Dungeon>>
 
 val getCodeFromDocument: GetCode = { path ->
   getDocumentFromPath(path)?.text
@@ -29,8 +26,8 @@ val getCodeFromDocument: GetCode = { path ->
 
 @Service
 class ImpLanguageService {
-  val dungeonArtifacts: TimedArtifactCache<Path, Response<Dungeon>> = ArtifactCache()
-  val workspaceArtifacts: ArtifactCache<Path, Response<Workspace>> = ArtifactCache()
+  val dungeonArtifacts: TimedArtifactCache<Path, Response<Dungeon>> = mutableMapOf()
+  val workspaceArtifacts: ArtifactCache<Path, Response<Workspace>> = mutableMapOf()
 
   val context: List<Namespace> = listOf(
       defaultImpNamespace(),
@@ -108,7 +105,7 @@ fun initialContext() =
     getImpLanguageService().context
 
 fun getWorkspaceModules(workspace: Workspace): ModuleMap {
-  return loadModules(workspace, initialContext(), getCodeFromDocument).value
+  return loadAllModules(workspace, initialContext(), getCodeFromDocument).value
 }
 
 fun getWorkspaceArtifact(path: Path): Response<Workspace>? =
