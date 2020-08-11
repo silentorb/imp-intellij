@@ -95,7 +95,7 @@ fun processWorkspaceOrFile(context: Context, filePath: Path, actualFile: Virtual
 //        println(module.dungeons[fileName]?.namespace?.values?.values?.last())
         Response(
             module.dungeons.values.firstOrNull() ?: emptyDungeon,
-            parsingErrors
+            parsingErrors+ errors
         )
       } else
         Response(

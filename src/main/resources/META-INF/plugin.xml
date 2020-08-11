@@ -26,6 +26,7 @@
                     secondary="true"/>
         <annotator language="Imp" implementationClass="silentorb.imp.intellij.language.ImpAnnotator"/>
         <additionalTextAttributes scheme="Default" file="colorSchemes/Default.xml"/>
+        <problemFileHighlightFilter implementation="silentorb.imp.intellij.language.ImpProblemFileHighlightFilter"/>
     </extensions>
 
     <actions>
