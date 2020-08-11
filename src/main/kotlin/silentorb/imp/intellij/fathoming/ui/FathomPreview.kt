@@ -1,12 +1,14 @@
 package silentorb.imp.intellij.fathoming.ui
 
 import com.intellij.openapi.Disposable
+import com.intellij.openapi.diagnostic.Logger
 import com.intellij.openapi.ui.SimpleToolWindowPanel
 import silentorb.imp.execution.executeToSingleValue
 import silentorb.imp.intellij.fathoming.actions.DisplayModeAction
 import silentorb.imp.intellij.fathoming.state.FathomPreviewState
 import silentorb.imp.intellij.fathoming.state.getDisplayMode
 import silentorb.imp.intellij.fathoming.state.getFathomPreviewStateService
+import silentorb.imp.intellij.services.ImpLanguageService
 import silentorb.imp.intellij.ui.misc.resizeListener
 import silentorb.imp.intellij.ui.preview.NewPreviewProps
 import silentorb.imp.intellij.ui.preview.PreviewDisplay
@@ -123,7 +125,13 @@ fun sampleMesh(
   vertexLock.unlock()
 
   thread(start = true) {
-    val rawMesh = logExecutionTime("generateMesh")  { generateShadedMesh(getDistance, getShading) }
+    val rawMesh = try {
+      logExecutionTime("generateMesh")  { generateShadedMesh(getDistance, getShading) }
+    }
+    catch (error: Throwable) {
+      Logger.getInstance(ImpLanguageService::class.java).error(error)
+      null
+    }
     vertexLock.lock()
     if (currentGraphHash != hash) {
       vertexLock.unlock()
@@ -147,7 +155,9 @@ fun rebuildPreviewSource(state: PreviewState, panel: SubstancePreviewPanel) {
   if (value != null) {
     when (state.type) {
       distanceFunctionType.hash -> {
-        sampleMesh(executionUnit.hashCode(), panel, value as DistanceFunction, null) { newShading(Vector3(1f, 0f, 0f)) }
+        sampleMesh(executionUnit.hashCode(), panel, value as DistanceFunction, null) {
+          newShading(Vector3(1f, 0f, 0f))
+        }
       }
       modelFunctionType.hash -> {
         val model = value as ModelFunction

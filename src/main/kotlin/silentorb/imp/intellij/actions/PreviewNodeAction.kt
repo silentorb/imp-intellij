@@ -20,7 +20,8 @@ class PreviewNodeAction : AnAction() {
       if (response != null) {
         val (dungeon) = response
         val offset = editor.caretModel.offset
-        val node = findNode(dungeon.nodeMap, pathToString(getDocumentPath(document)), offset)
+        val filePath = pathToString(getDocumentPath(document))
+        val node = findNode(dungeon.nodeMap, filePath, offset)
         val metadata = getDocumentMetadataService()
         val newNode = if (metadata.getPreviewNode(document) == node)
           null
